@@ -84,6 +84,7 @@ if (count === 0) {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
 // Sanitize helper
 function sanitizeText(str) {

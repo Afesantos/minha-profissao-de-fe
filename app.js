@@ -81,7 +81,7 @@ const FaithStorage = {
     // Text Search
     if (search) {
       const term = search.toLowerCase();
-      items = items.filter(item => 
+      items = items.filter(item =>
         (item.name && item.name.toLowerCase().includes(term)) ||
         (item.declaration && item.declaration.toLowerCase().includes(term))
       );
@@ -235,9 +235,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const toastContainer = document.getElementById('toast-container');
   let currentNewDeclaration = null;
   let isSpeaking = false;
-  let ambientAudioCtx = null;
-  let ambientInterval = null;
   let isAmbientPlaying = false;
+  const ambientAudio = new Audio(encodeURI('OraçãoHabacuque-Grupo-Águas.mp3'));
+  ambientAudio.loop = true;
+  ambientAudio.volume = 0.55;
 
   // Set Year
   const yearEl = document.getElementById('current-year');
@@ -658,12 +659,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     utterance.onstart = () => {
       isSpeaking = true;
+      if (isAmbientPlaying) {
+        ambientAudio.volume = 0.2;
+      }
       btnReadVerse.innerHTML = `<i data-lucide="square"></i> <span>Parar leitura</span>`;
       if (window.lucide) window.lucide.createIcons();
     };
 
     utterance.onend = utterance.onerror = () => {
       isSpeaking = false;
+      if (isAmbientPlaying) {
+        ambientAudio.volume = 0.55;
+      }
       btnReadVerse.innerHTML = `<i data-lucide="volume-2"></i> <span>Ouvir passagem</span>`;
       if (window.lucide) window.lucide.createIcons();
     };
@@ -671,75 +678,46 @@ document.addEventListener('DOMContentLoaded', () => {
     window.speechSynthesis.speak(utterance);
   });
 
-  function playPeaceChime(freq, duration = 3.5) {
-    if (!ambientAudioCtx) {
-      ambientAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    const osc = ambientAudioCtx.createOscillator();
-    const gain = ambientAudioCtx.createGain();
+  // Eventos do áudio da Oração de Habacuque
+  ambientAudio.addEventListener('ended', () => {
+    isAmbientPlaying = false;
+    btnAmbientSound.classList.remove('active');
+    btnAmbientSound.innerHTML = `<i data-lucide="volume-2"></i> <span class="sound-label">Oração de Habacuque</span>`;
+    btnAmbientSound.setAttribute('title', 'Tocar Oração de Habacuque');
+    if (window.lucide) window.lucide.createIcons();
+  });
 
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, ambientAudioCtx.currentTime);
-
-    gain.gain.setValueAtTime(0.001, ambientAudioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.05, ambientAudioCtx.currentTime + 0.8);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ambientAudioCtx.currentTime + duration);
-
-    osc.connect(gain);
-    gain.connect(ambientAudioCtx.destination);
-
-    osc.start();
-    osc.stop(ambientAudioCtx.currentTime + duration);
-  }
-
-  const peacefulChordFrequencies = [
-    [261.63, 329.63, 392.00, 523.25], // C major
-    [220.00, 261.63, 329.63, 440.00], // A minor
-    [174.61, 220.00, 261.63, 349.23], // F major
-    [196.00, 246.94, 293.66, 392.00]  // G major
-  ];
-
-  let chordIndex = 0;
-  function startPeaceAmbience() {
-    if (!ambientAudioCtx) {
-      ambientAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (ambientAudioCtx.state === 'suspended') {
-      ambientAudioCtx.resume();
-    }
-
-    const playNextChord = () => {
-      const notes = peacefulChordFrequencies[chordIndex % peacefulChordFrequencies.length];
-      notes.forEach((f, idx) => {
-        setTimeout(() => playPeaceChime(f, 4.5), idx * 120);
-      });
-      chordIndex++;
-    };
-
-    playNextChord();
-    ambientInterval = setInterval(playNextChord, 4000);
-  }
-
-  function stopPeaceAmbience() {
-    if (ambientInterval) {
-      clearInterval(ambientInterval);
-      ambientInterval = null;
-    }
-  }
+  ambientAudio.addEventListener('error', (e) => {
+    console.warn('Erro ao carregar o áudio:', e);
+    showToast('Não foi possível carregar o arquivo de áudio.', '⚠️');
+    isAmbientPlaying = false;
+    btnAmbientSound.classList.remove('active');
+    btnAmbientSound.innerHTML = `<i data-lucide="volume-2"></i> <span class="sound-label">Oração de Habacuque</span>`;
+    btnAmbientSound.setAttribute('title', 'Tocar Oração de Habacuque');
+    if (window.lucide) window.lucide.createIcons();
+  });
 
   btnAmbientSound.addEventListener('click', () => {
-    isAmbientPlaying = !isAmbientPlaying;
-    if (isAmbientPlaying) {
-      startPeaceAmbience();
-      btnAmbientSound.classList.add('active');
-      btnAmbientSound.innerHTML = `<i data-lucide="volume-x"></i> <span class="sound-label">Silenciar Paz</span>`;
-      showToast('Música ambiente de paz iniciada 🕊️', '🎶');
+    if (!isAmbientPlaying) {
+      ambientAudio.play().then(() => {
+        isAmbientPlaying = true;
+        btnAmbientSound.classList.add('active');
+        btnAmbientSound.innerHTML = `<i data-lucide="volume-x"></i> <span class="sound-label">Pausar Música</span>`;
+        btnAmbientSound.setAttribute('title', 'Pausar Oração de Habacuque');
+        showToast('Tocando: Oração de Habacuque - Grupo Águas 🕊️', '🎶');
+        if (window.lucide) window.lucide.createIcons();
+      }).catch((err) => {
+        console.warn('Reprodução bloqueada pelo navegador:', err);
+        showToast('Clique novamente para autorizar a reprodução de áudio.', '⚠️');
+      });
     } else {
-      stopPeaceAmbience();
+      ambientAudio.pause();
+      isAmbientPlaying = false;
       btnAmbientSound.classList.remove('active');
-      btnAmbientSound.innerHTML = `<i data-lucide="volume-2"></i> <span class="sound-label">Som da Paz</span>`;
+      btnAmbientSound.innerHTML = `<i data-lucide="volume-2"></i> <span class="sound-label">Oração de Habacuque</span>`;
+      btnAmbientSound.setAttribute('title', 'Tocar Oração de Habacuque');
+      if (window.lucide) window.lucide.createIcons();
     }
-    if (window.lucide) window.lucide.createIcons();
   });
 
   // Initial render
