@@ -1,0 +1,14 @@
+{
+  "name": "minha-profissao-de-fe",
+  "version": "1.0.0",
+  "description": "Mural coletivo de declarações de fé inspirado em Habacuque 3:17-18",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
