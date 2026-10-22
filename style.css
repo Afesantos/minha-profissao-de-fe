@@ -1276,6 +1276,27 @@ input[type="text"]#name-input:focus {
   transform: scale(1.1);
 }
 
+.btn-card-delete {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.btn-card-delete:hover {
+  color: #ef4444;
+  border-color: #fecaca;
+  background: #fef2f2;
+  transform: scale(1.1);
+}
+
 /* CARD ENTRANCE ANIMATION */
 .card-new-entrance {
   animation: cardDropIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -1547,7 +1568,7 @@ input[type="text"]#name-input:focus {
 }
 
 .footer-logo {
-  height: 48px;
+  height: 72px; /* increased by 50% */
   width: auto;
   max-width: 180px;
   object-fit: contain;

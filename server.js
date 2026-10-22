@@ -34,6 +34,13 @@ try {
   // Column already exists
 }
 
+// Ensure delete_token column exists for existing databases
+try {
+  db.exec(`ALTER TABLE declarations ADD COLUMN delete_token TEXT;`);
+} catch (e) {
+  // Column already exists
+}
+
 // Ensure Habakkuk is marked as pinned = 1
 try {
   db.exec(`UPDATE declarations SET is_pinned = 1 WHERE name LIKE '%Habacuque%';`);
@@ -120,7 +127,7 @@ app.get('/api/declarations', (req, res) => {
     const filterColor = req.query.color && req.query.color !== 'all' ? req.query.color : null;
     const sortBy = req.query.sort === 'amen' ? 'amen_count DESC, id DESC' : 'id DESC';
 
-    let query = `SELECT * FROM declarations WHERE 1=1`;
+    let query = `SELECT id, name, declaration, color_theme, rotation, amen_count, is_pinned, created_at FROM declarations WHERE 1=1`;
     const params = [];
 
     if (search) {
@@ -180,23 +187,27 @@ app.post('/api/declarations', (req, res) => {
     }
 
     const rotation = generateRandomRotation();
+    const deleteToken = (typeof req.body.delete_token === 'string' && req.body.delete_token.trim())
+      ? req.body.delete_token.trim()
+      : Math.random().toString(36).substring(2) + Date.now().toString(36);
 
     const insertStmt = db.prepare(`
-      INSERT INTO declarations (name, declaration, color_theme, rotation, amen_count, created_at)
-      VALUES (?, ?, ?, ?, 0, datetime('now'))
+      INSERT INTO declarations (name, declaration, color_theme, rotation, amen_count, delete_token, created_at)
+      VALUES (?, ?, ?, ?, 0, ?, datetime('now'))
     `);
 
-    const result = insertStmt.run(cleanName, cleanDeclaration, selectedTheme, rotation);
+    const result = insertStmt.run(cleanName, cleanDeclaration, selectedTheme, rotation, deleteToken);
     const newId = result.lastInsertRowid;
 
-    const getStmt = db.prepare('SELECT * FROM declarations WHERE id = ?');
+    const getStmt = db.prepare('SELECT id, name, declaration, color_theme, rotation, amen_count, is_pinned, created_at FROM declarations WHERE id = ?');
     const newDeclaration = getStmt.get(newId);
 
     res.status(201).json({
       success: true,
       message: 'Sua profissão de fé foi publicada!',
       subMessage: 'Que sua declaração também fortaleça a fé de outras pessoas. ❤️',
-      declaration: newDeclaration
+      declaration: newDeclaration,
+      delete_token: deleteToken
     });
   } catch (error) {
     console.error('Erro ao salvar declaração:', error);
@@ -224,6 +235,40 @@ app.post('/api/declarations/:id/amen', (req, res) => {
   } catch (error) {
     console.error('Erro ao adicionar amém:', error);
     res.status(500).json({ success: false, message: 'Erro ao registrar interação.' });
+  }
+});
+
+app.delete('/api/declarations/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const clientToken = req.headers['x-delete-token'] || req.body?.delete_token || req.query?.token;
+
+    const getStmt = db.prepare('SELECT * FROM declarations WHERE id = ?');
+    const declaration = getStmt.get(id);
+
+    if (!declaration) {
+      return res.status(404).json({ success: false, message: 'Declaração não encontrada.' });
+    }
+
+    if (declaration.is_pinned === 1 || (declaration.name && declaration.name.toLowerCase().includes('habacuque'))) {
+      return res.status(403).json({ success: false, message: 'A profissão de fé de Habacuque não pode ser excluída.' });
+    }
+
+    // Se a declaração tiver token de autor registrado, valida o token
+    if (declaration.delete_token && declaration.delete_token !== clientToken) {
+      return res.status(403).json({ success: false, message: 'Apenas o autor pode excluir esta declaração.' });
+    }
+
+    const deleteStmt = db.prepare('DELETE FROM declarations WHERE id = ?');
+    deleteStmt.run(id);
+
+    res.json({
+      success: true,
+      message: 'Declaração excluída com sucesso.'
+    });
+  } catch (error) {
+    console.error('Erro ao excluir declaração:', error);
+    res.status(500).json({ success: false, message: 'Não foi possível excluir a declaração.' });
   }
 });
 

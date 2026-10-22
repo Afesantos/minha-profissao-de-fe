@@ -134,7 +134,8 @@ const FaithStorage = {
       rotation: rotation,
       amen_count: 0,
       is_pinned: 0,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      delete_token: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9)
     };
 
     list.unshift(newItem);
@@ -324,6 +325,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         if (data.success && Array.isArray(data.declarations)) {
           items = data.declarations;
+          // Merge delete_token from local storage if present
+          const localItems = FaithStorage.getAll();
+          items = items.map(item => {
+            const local = localItems.find(l => l.id === item.id);
+            if (local && local.delete_token) {
+              item.delete_token = local.delete_token;
+            }
+            return item;
+          });
           FaithStorage.saveAll(items);
         }
       }
@@ -427,6 +437,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <button class="btn-card-share" data-id="${item.id}" title="Compartilhar no WhatsApp">
             <i data-lucide="share-2"></i>
           </button>
+          ${item.delete_token ? `<button class="btn-card-delete" data-id="${item.id}" data-token="${item.delete_token}" title="Excluir sua declaração">
+            <i data-lucide="trash-2"></i>
+          </button>` : ''}
+          </button>
         </div>
       </div>
     `;
@@ -438,6 +452,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Share button action
     const btnShare = card.querySelector('.btn-card-share');
     btnShare.addEventListener('click', () => handleShare(item));
+
+    // Delete button action (author only)
+    const btnDelete = card.querySelector('.btn-card-delete');
+    if (btnDelete) {
+      btnDelete.addEventListener('click', () => handleDelete(item.id, btnDelete.dataset.token));
+    }
 
     return card;
   }
@@ -466,6 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 4. AMEN & SHARE
   async function handleAmen(id, buttonEl) {
+        // existing code unchanged
     buttonEl.classList.add('clicked');
     let newCount = FaithStorage.addAmen(id);
 
@@ -561,6 +582,32 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Não foi possível capturar a imagem do card.', '⚠️');
   }
 
+  async function handleDelete(id, token) {
+    if (!confirm('Deseja excluir sua declaração?')) return;
+    try {
+      const res = await fetch(`/api/declarations/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Delete-Token': token
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          // Remove from local storage
+          const updated = FaithStorage.getAll().filter(item => item.id !== Number(id));
+          FaithStorage.saveAll(updated);
+          renderCards(updated);
+          updateStatsDisplay();
+          showToast('Declaração excluída.', '🗑️');
+        }
+      }
+    } catch (e) {
+      console.warn('Erro ao deletar declaração:', e);
+    }
+  }
+
 
   // 5. FORM SUBMISSION (SAVES TO WEB SERVER & LOCALSTORAGE)
   form.addEventListener('submit', async (e) => {
@@ -629,6 +676,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         if (data.success && data.declaration) {
           newItem = data.declaration;
+          newItem.delete_token = data.delete_token;
           // Atualiza cache local
           const list = FaithStorage.getAll();
           const exists = list.some(i => i.id === newItem.id);
