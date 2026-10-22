@@ -315,14 +315,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 3500);
   }
 
-  // 3. LOAD & RENDER DECLARATIONS
-  function loadDeclarations() {
-    const items = FaithStorage.query({ search: '', color: 'all', sort: 'recent' });
+  // 3. LOAD & RENDER DECLARATIONS (WEB SERVER + OFFLINE LOCALSTORAGE)
+  async function loadDeclarations() {
+    let items = null;
+    try {
+      const res = await fetch('/api/declarations');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.declarations)) {
+          items = data.declarations;
+          FaithStorage.saveAll(items);
+        }
+      }
+    } catch (e) {
+      console.info('Modo local ou sem servidor web ativo:', e);
+    }
+
+    if (!items) {
+      items = FaithStorage.query({ search: '', color: 'all', sort: 'recent' });
+    }
     renderCards(items);
     updateStatsDisplay();
   }
 
-  function updateStatsDisplay() {
+  async function updateStatsDisplay() {
+    try {
+      const res = await fetch('/api/stats');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.stats) {
+          if (statDeclarations) statDeclarations.textContent = data.stats.total_declarations;
+          if (statAmens) statAmens.textContent = data.stats.total_amens;
+          return;
+        }
+      }
+    } catch (e) {
+      // fallback
+    }
     const stats = FaithStorage.getStats();
     if (statDeclarations) statDeclarations.textContent = stats.total_declarations;
     if (statAmens) statAmens.textContent = stats.total_amens;
@@ -436,12 +465,32 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 4. AMEN & SHARE
-  function handleAmen(id, buttonEl) {
+  async function handleAmen(id, buttonEl) {
     buttonEl.classList.add('clicked');
-    const newCount = FaithStorage.addAmen(id);
+    let newCount = FaithStorage.addAmen(id);
 
     const countEl = buttonEl.querySelector('.amen-count');
     if (countEl) countEl.textContent = newCount;
+
+    // Sincroniza com servidor web
+    try {
+      const res = await fetch(`/api/declarations/${id}/amen`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && typeof data.amen_count === 'number') {
+          newCount = data.amen_count;
+          if (countEl) countEl.textContent = newCount;
+          const list = FaithStorage.getAll();
+          const item = list.find(i => i.id === Number(id));
+          if (item) {
+            item.amen_count = newCount;
+            FaithStorage.saveAll(list);
+          }
+        }
+      }
+    } catch (e) {
+      // LocalStorage já atualizado
+    }
 
     // Small confetti burst
     const rect = buttonEl.getBoundingClientRect();
@@ -513,8 +562,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 
-  // 5. FORM SUBMISSION
-  form.addEventListener('submit', (e) => {
+  // 5. FORM SUBMISSION (SAVES TO WEB SERVER & LOCALSTORAGE)
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const declaration = declarationInput.value.trim();
@@ -555,14 +604,59 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedColorInput = document.querySelector('input[name="card-color"]:checked');
     const colorTheme = selectedColorInput ? selectedColorInput.value : 'random';
 
-    // Add to Local Storage JSON DB
-    const newItem = FaithStorage.add({
-      name,
-      declaration,
-      color_theme: colorTheme
-    });
+    // Estado visual do botão durante o envio
+    const btnContent = btnSubmit.querySelector('.btn-content');
+    const btnLoader = btnSubmit.querySelector('.btn-loader');
+    if (btnContent) btnContent.style.display = 'none';
+    if (btnLoader) btnLoader.style.display = 'inline-flex';
+    btnSubmit.disabled = true;
+
+    let newItem = null;
+
+    // 1. Envia para o servidor web (persistência no banco SQLite central na web)
+    try {
+      const res = await fetch('/api/declarations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          declaration,
+          color_theme: colorTheme
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.declaration) {
+          newItem = data.declaration;
+          // Atualiza cache local
+          const list = FaithStorage.getAll();
+          const exists = list.some(i => i.id === newItem.id);
+          if (!exists) {
+            list.unshift(newItem);
+            FaithStorage.saveAll(list);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Servidor web offline ou inacessível, gravando localmente:', err);
+    }
+
+    // 2. Se o servidor não respondeu, grava no localStorage como contingência
+    if (!newItem) {
+      newItem = FaithStorage.add({
+        name,
+        declaration,
+        color_theme: colorTheme
+      });
+    }
 
     currentNewDeclaration = newItem;
+
+    // Restaura botão
+    if (btnContent) btnContent.style.display = 'inline-flex';
+    if (btnLoader) btnLoader.style.display = 'none';
+    btnSubmit.disabled = false;
 
     // Reset Form
     form.reset();
