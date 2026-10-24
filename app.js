@@ -1,168 +1,97 @@
 // =========================================================
-// MINHA PROFISSÃO DE FÉ — CLIENT-SIDE JAVASCRIPT (JSON & LOCALSTORAGE)
-// Não necessita de servidor externo — 100% autônomo e portátil!
+// MINHA PROFISSÃO DE FÉ — CLIENT-SIDE JAVASCRIPT
 // =========================================================
 
-// Initial Default Dataset (Only Habakkuk with 0 amens)
-const INITIAL_DECLARATIONS = [
-  {
-    id: 1,
-    name: "Profeta Habacuque",
-    declaration: "Ainda que a figueira não floresça, nem haja fruto na vide; ainda que decepcione o produto da oliveira, e os campos não produzam mantimento; todavia eu me alegrarei no SENHOR e exultarei no Deus da minha salvação.",
-    color_theme: "amarelo-suave",
-    rotation: 0,
-    amen_count: 0,
-    is_pinned: 1,
-    created_at: new Date(Date.now() - 24 * 3600000).toISOString()
+// Data Management Service (server API)
+const AUTHOR_TOKENS_KEY = 'minha_profissao_de_fe_author_tokens';
+
+function getAuthorTokens() {
+  try {
+    return JSON.parse(localStorage.getItem(AUTHOR_TOKENS_KEY) || '{}');
+  } catch {
+    return {};
   }
-];
+}
 
-const STORAGE_KEY = 'minha_profissao_de_fe_json_db';
-
-// Old placeholder names to clean if present in localStorage
-const OLD_PLACEHOLDERS = [
-  "Mateus Ribeiro",
-  "Priscila & Família",
-  "Gabriel Santos",
-  "Helena Carvalho",
-  "Daniel Oliveira"
-];
-
-// Data Management Service (JSON / LocalStorage)
 const FaithStorage = {
-  getAll() {
-    try {
-      const data = localStorage.getItem(STORAGE_KEY);
-      if (!data) {
-        this.saveAll(INITIAL_DECLARATIONS);
-        return [...INITIAL_DECLARATIONS];
-      }
-      let parsed = JSON.parse(data);
-      if (!Array.isArray(parsed) || parsed.length === 0) {
-        this.saveAll(INITIAL_DECLARATIONS);
-        return [...INITIAL_DECLARATIONS];
-      }
-
-      // Filter out legacy dummy placeholder names automatically
-      const filtered = parsed.filter(item => !OLD_PLACEHOLDERS.includes(item.name));
-      if (filtered.length !== parsed.length) {
-        this.saveAll(filtered);
-        parsed = filtered;
-      }
-
-      // Ensure Habakkuk is present and if it has previous seed count 52/48, reset to 0
-      const habakkuk = parsed.find(item => item.name && item.name.includes("Habacuque"));
-      if (!habakkuk) {
-        parsed.unshift(INITIAL_DECLARATIONS[0]);
-        this.saveAll(parsed);
-      } else if (habakkuk.amen_count === 52 || habakkuk.amen_count === 48) {
-        habakkuk.amen_count = 0;
-        this.saveAll(parsed);
-      }
-
-      return parsed;
-    } catch (e) {
-      console.warn('Erro ao ler localStorage, utilizando dados iniciais:', e);
-      return [...INITIAL_DECLARATIONS];
+  async getAll() {
+    const response = await fetch('/api/declarations');
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || 'Não foi possível carregar o mural.');
     }
+    return result.declarations;
   },
 
-  saveAll(list) {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    } catch (e) {
-      console.error('Erro ao gravar no localStorage:', e);
+  async query({ search = '', color = 'all', sort = 'recent' }) {
+    const params = new URLSearchParams();
+    if (search) params.set('q', search);
+    if (color && color !== 'all') params.set('color', color);
+    if (sort === 'amen') params.set('sort', 'amen');
+    const response = await fetch(`/api/declarations?${params.toString()}`);
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || 'Não foi possível carregar o mural.');
     }
+    return result.declarations;
   },
 
-  query({ search = '', color = 'all', sort = 'recent' }) {
-    let items = this.getAll();
-
-    // Text Search
-    if (search) {
-      const term = search.toLowerCase();
-      items = items.filter(item =>
-        (item.name && item.name.toLowerCase().includes(term)) ||
-        (item.declaration && item.declaration.toLowerCase().includes(term))
-      );
-    }
-
-    // Color filter
-    if (color && color !== 'all') {
-      items = items.filter(item => item.color_theme === color);
-    }
-
-    // Sort: Pinned Habakkuk ALWAYS first, then by chosen criteria
-    items.sort((a, b) => {
-      const pinA = a.is_pinned ? 1 : 0;
-      const pinB = b.is_pinned ? 1 : 0;
-      if (pinA !== pinB) return pinB - pinA;
-
-      if (sort === 'amen') {
-        return (b.amen_count || 0) - (a.amen_count || 0);
-      }
-      // 'recent' by created_at or id
-      return new Date(b.created_at) - new Date(a.created_at);
+  async add({ name, declaration, color_theme }) {
+    const deleteToken = crypto.randomUUID();
+    const response = await fetch('/api/declarations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, declaration, color_theme, delete_token: deleteToken })
     });
-
-    return items;
-  },
-
-  add({ name, declaration, color_theme }) {
-    const list = this.getAll();
-    const cleanName = sanitizeText(name);
-    const cleanDeclaration = sanitizeText(declaration);
-
-    const COLOR_THEMES = [
-      'amarelo-suave', 'azul-claro', 'verde-suave',
-      'coral', 'lilas', 'azul-petroleo', 'creme', 'rosa-suave'
-    ];
-
-    let selectedTheme = color_theme;
-    if (!COLOR_THEMES.includes(selectedTheme)) {
-      selectedTheme = COLOR_THEMES[Math.floor(Math.random() * COLOR_THEMES.length)];
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || 'Não foi possível publicar sua declaração.');
     }
-
-    const newId = list.reduce((max, item) => Math.max(max, item.id || 0), 0) + 1;
-    const rotation = generateRandomRotation();
-
-    const newItem = {
-      id: newId,
-      name: cleanName,
-      declaration: cleanDeclaration,
-      color_theme: selectedTheme,
-      rotation: rotation,
-      amen_count: 0,
-      is_pinned: 0,
-      created_at: new Date().toISOString(),
-      delete_token: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9)
-    };
-
-    list.unshift(newItem);
-    this.saveAll(list);
-    return newItem;
+    const tokens = getAuthorTokens();
+    tokens[result.declaration.id] = deleteToken;
+    localStorage.setItem(AUTHOR_TOKENS_KEY, JSON.stringify(tokens));
+    return result.declaration;
   },
 
-  addAmen(id) {
-    const list = this.getAll();
-    const item = list.find(i => i.id === Number(id));
-    if (item) {
-      item.amen_count = (item.amen_count || 0) + 1;
-      this.saveAll(list);
-      return item.amen_count;
+  async delete(id) {
+    const tokens = getAuthorTokens();
+    const deleteToken = tokens[id];
+    if (!deleteToken) {
+      throw new Error('Este navegador não possui autorização para excluir esta declaração.');
     }
-    return 0;
+    const response = await fetch(`/api/declarations/${id}`, {
+      method: 'DELETE',
+      headers: { 'x-delete-token': deleteToken }
+    });
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || 'Não foi possível excluir a declaração.');
+    }
+    delete tokens[id];
+    localStorage.setItem(AUTHOR_TOKENS_KEY, JSON.stringify(tokens));
   },
 
-  getStats() {
-    const list = this.getAll();
-    const total_declarations = list.length;
-    const total_amens = list.reduce((acc, curr) => acc + (curr.amen_count || 0), 0);
-    return { total_declarations, total_amens };
+  async addAmen(id) {
+    const response = await fetch(`/api/declarations/${id}/amen`, { method: 'POST' });
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || 'Não foi possível registrar o amém.');
+    }
+    return result.amen_count;
   },
 
-  exportJSON() {
-    const dataStr = JSON.stringify(this.getAll(), null, 2);
+  async getStats() {
+    const response = await fetch('/api/stats');
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || 'Não foi possível carregar as estatísticas.');
+    }
+    return result.stats;
+  },
+
+  async exportJSON() {
+    const list = await this.getAll();
+    const dataStr = JSON.stringify(list, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -172,40 +101,8 @@ const FaithStorage = {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  },
-
-  importJSON(jsonText) {
-    try {
-      const parsed = JSON.parse(jsonText);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        this.saveAll(parsed);
-        return true;
-      }
-      return false;
-    } catch (e) {
-      return false;
-    }
   }
 };
-
-// Sanitize helper
-function sanitizeText(str) {
-  if (typeof str !== 'string') return '';
-  return str
-    .trim()
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-function generateRandomRotation() {
-  const min = 0.5;
-  const max = 1.5;
-  const val = (Math.random() * (max - min) + min).toFixed(2);
-  return Math.random() > 0.5 ? parseFloat(val) : -parseFloat(val);
-}
 
 // =========================================================
 // APPLICATION LOGIC & UI
@@ -316,53 +213,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 3500);
   }
 
-  // 3. LOAD & RENDER DECLARATIONS (WEB SERVER + OFFLINE LOCALSTORAGE)
+  // 3. LOAD & RENDER DECLARATIONS
   async function loadDeclarations() {
-    let items = null;
     try {
-      const res = await fetch('/api/declarations');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && Array.isArray(data.declarations)) {
-          items = data.declarations;
-          // Merge delete_token from local storage if present
-          const localItems = FaithStorage.getAll();
-          items = items.map(item => {
-            const local = localItems.find(l => l.id === item.id);
-            if (local && local.delete_token) {
-              item.delete_token = local.delete_token;
-            }
-            return item;
-          });
-          FaithStorage.saveAll(items);
-        }
-      }
-    } catch (e) {
-      console.info('Modo local ou sem servidor web ativo:', e);
+      const items = await FaithStorage.query({ search: '', color: 'all', sort: 'recent' });
+      renderCards(items);
+      await updateStatsDisplay();
+    } catch (error) {
+      muralGrid.innerHTML = '<p class="mural-loading-state">Não foi possível conectar ao mural. Tente novamente em instantes.</p>';
+      showToast(error.message || 'Não foi possível carregar as profissões de fé.', '⚠️');
     }
-
-    if (!items) {
-      items = FaithStorage.query({ search: '', color: 'all', sort: 'recent' });
-    }
-    renderCards(items);
-    updateStatsDisplay();
   }
 
   async function updateStatsDisplay() {
-    try {
-      const res = await fetch('/api/stats');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.stats) {
-          if (statDeclarations) statDeclarations.textContent = data.stats.total_declarations;
-          if (statAmens) statAmens.textContent = data.stats.total_amens;
-          return;
-        }
-      }
-    } catch (e) {
-      // fallback
-    }
-    const stats = FaithStorage.getStats();
+    const stats = await FaithStorage.getStats();
     if (statDeclarations) statDeclarations.textContent = stats.total_declarations;
     if (statAmens) statAmens.textContent = stats.total_amens;
   }
@@ -407,6 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeLabel = isHabakkuk ? '🌟 PROFISSÃO DE FÉ DE HABACUQUE' : 'Ministério 50+ 2026';
     const initials = isHabakkuk ? 'HB' : getInitials(item.name);
     const dateFormatted = isHabakkuk ? 'Cerca de 620 a.C.' : formatDate(item.created_at);
+    const canDelete = !isHabakkuk && Boolean(getAuthorTokens()[item.id]);
 
     card.innerHTML = `
       <div class="card-header-row">
@@ -437,10 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <button class="btn-card-share" data-id="${item.id}" title="Compartilhar no WhatsApp">
             <i data-lucide="share-2"></i>
           </button>
-          ${item.delete_token ? `<button class="btn-card-delete" data-id="${item.id}" data-token="${item.delete_token}" title="Excluir sua declaração">
-            <i data-lucide="trash-2"></i>
-          </button>` : ''}
-          </button>
+          ${canDelete ? `<button class="btn-card-delete" data-id="${item.id}" title="Excluir minha profissão de fé" aria-label="Excluir minha profissão de fé"><i data-lucide="trash-2"></i></button>` : ''}
         </div>
       </div>
     `;
@@ -453,10 +315,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnShare = card.querySelector('.btn-card-share');
     btnShare.addEventListener('click', () => handleShare(item));
 
-    // Delete button action (author only)
     const btnDelete = card.querySelector('.btn-card-delete');
     if (btnDelete) {
-      btnDelete.addEventListener('click', () => handleDelete(item.id, btnDelete.dataset.token));
+      btnDelete.addEventListener('click', () => handleDelete(item.id, btnDelete));
     }
 
     return card;
@@ -485,33 +346,32 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 4. AMEN & SHARE
+  async function handleDelete(id, buttonEl) {
+    if (!window.confirm('Deseja excluir permanentemente sua profissão de fé?')) return;
+    buttonEl.disabled = true;
+    try {
+      await FaithStorage.delete(id);
+      showToast('Sua profissão de fé foi excluída.', '✅');
+      await loadDeclarations();
+    } catch (error) {
+      buttonEl.disabled = false;
+      showToast(error.message || 'Não foi possível excluir a declaração.', '⚠️');
+    }
+  }
+
   async function handleAmen(id, buttonEl) {
-        // existing code unchanged
     buttonEl.classList.add('clicked');
-    let newCount = FaithStorage.addAmen(id);
+    let newCount;
+    try {
+      newCount = await FaithStorage.addAmen(id);
+    } catch (error) {
+      buttonEl.classList.remove('clicked');
+      showToast(error.message || 'Não foi possível registrar o amém.', '⚠️');
+      return;
+    }
 
     const countEl = buttonEl.querySelector('.amen-count');
     if (countEl) countEl.textContent = newCount;
-
-    // Sincroniza com servidor web
-    try {
-      const res = await fetch(`/api/declarations/${id}/amen`, { method: 'POST' });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && typeof data.amen_count === 'number') {
-          newCount = data.amen_count;
-          if (countEl) countEl.textContent = newCount;
-          const list = FaithStorage.getAll();
-          const item = list.find(i => i.id === Number(id));
-          if (item) {
-            item.amen_count = newCount;
-            FaithStorage.saveAll(list);
-          }
-        }
-      }
-    } catch (e) {
-      // LocalStorage já atualizado
-    }
 
     // Small confetti burst
     const rect = buttonEl.getBoundingClientRect();
@@ -582,34 +442,8 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Não foi possível capturar a imagem do card.', '⚠️');
   }
 
-  async function handleDelete(id, token) {
-    if (!confirm('Deseja excluir sua declaração?')) return;
-    try {
-      const res = await fetch(`/api/declarations/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Delete-Token': token
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          // Remove from local storage
-          const updated = FaithStorage.getAll().filter(item => item.id !== Number(id));
-          FaithStorage.saveAll(updated);
-          renderCards(updated);
-          updateStatsDisplay();
-          showToast('Declaração excluída.', '🗑️');
-        }
-      }
-    } catch (e) {
-      console.warn('Erro ao deletar declaração:', e);
-    }
-  }
 
-
-  // 5. FORM SUBMISSION (SAVES TO WEB SERVER & LOCALSTORAGE)
+  // 5. FORM SUBMISSION
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -658,45 +492,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnLoader) btnLoader.style.display = 'inline-flex';
     btnSubmit.disabled = true;
 
-    let newItem = null;
-
-    // 1. Envia para o servidor web (persistência no banco SQLite central na web)
+    let newItem;
     try {
-      const res = await fetch('/api/declarations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          declaration,
-          color_theme: colorTheme
-        })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.declaration) {
-          newItem = data.declaration;
-          newItem.delete_token = data.delete_token;
-          // Atualiza cache local
-          const list = FaithStorage.getAll();
-          const exists = list.some(i => i.id === newItem.id);
-          if (!exists) {
-            list.unshift(newItem);
-            FaithStorage.saveAll(list);
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('Servidor web offline ou inacessível, gravando localmente:', err);
-    }
-
-    // 2. Se o servidor não respondeu, grava no localStorage como contingência
-    if (!newItem) {
-      newItem = FaithStorage.add({
-        name,
-        declaration,
-        color_theme: colorTheme
-      });
+      newItem = await FaithStorage.add({ name, declaration, color_theme: colorTheme });
+    } catch (error) {
+      if (btnContent) btnContent.style.display = 'inline-flex';
+      if (btnLoader) btnLoader.style.display = 'none';
+      btnSubmit.disabled = false;
+      showToast(error.message || 'Não foi possível salvar sua declaração. Tente novamente.', '⚠️');
+      return;
     }
 
     currentNewDeclaration = newItem;

@@ -1285,16 +1285,19 @@ input[type="text"]#name-input:focus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
+  color: #b91c1c;
   cursor: pointer;
   transition: var(--transition-smooth);
 }
 
 .btn-card-delete:hover {
-  color: #ef4444;
-  border-color: #fecaca;
   background: #fef2f2;
-  transform: scale(1.1);
+  border-color: #fecaca;
+}
+
+.btn-card-delete:disabled {
+  cursor: wait;
+  opacity: 0.6;
 }
 
 /* CARD ENTRANCE ANIMATION */
@@ -1568,7 +1571,7 @@ input[type="text"]#name-input:focus {
 }
 
 .footer-logo {
-  height: 72px; /* increased by 50% */
+  height: 48px;
   width: auto;
   max-width: 180px;
   object-fit: contain;
