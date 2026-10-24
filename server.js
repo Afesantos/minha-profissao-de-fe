@@ -10,7 +10,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Initialize SQLite database
-const dbPath = path.join(__dirname, 'profissoes_fe.db');
+const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'profissoes_fe.db');
 const db = new DatabaseSync(dbPath);
 
 // Create table with is_pinned support
