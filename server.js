@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
@@ -8,12 +9,11 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map(origin => origin.trim()).filter(Boolean);
 
-// Initialize SQLite database
 const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'profissoes_fe.db');
 const db = new DatabaseSync(dbPath);
 
-// Create table with is_pinned support
 db.exec(`
   CREATE TABLE IF NOT EXISTS declarations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,26 +27,19 @@ db.exec(`
   );
 `);
 
-// Ensure is_pinned column exists for existing databases
 try {
-  db.exec(`ALTER TABLE declarations ADD COLUMN is_pinned INTEGER DEFAULT 0;`);
-} catch (e) {
-  // Column already exists
+  db.exec('ALTER TABLE declarations ADD COLUMN is_pinned INTEGER DEFAULT 0;');
+} catch {
+  // Column already exists.
 }
 
-// Ensure delete_token column exists for existing databases
 try {
-  db.exec(`ALTER TABLE declarations ADD COLUMN delete_token TEXT;`);
-} catch (e) {
-  // Column already exists
+  db.exec('ALTER TABLE declarations ADD COLUMN delete_token TEXT;');
+} catch {
+  // Column already exists.
 }
 
-// Ensure Habakkuk is marked as pinned = 1
-try {
-  db.exec(`UPDATE declarations SET is_pinned = 1 WHERE name LIKE '%Habacuque%';`);
-} catch (e) {
-  // Ignore
-}
+db.exec("UPDATE declarations SET is_pinned = 1 WHERE name LIKE '%Habacuque%';");
 
 // Color themes available
 const COLOR_THEMES = [
@@ -60,7 +53,7 @@ const COLOR_THEMES = [
   'rosa-suave'
 ];
 
-// Seed initial declarations if empty
+// Seed initial declaration when the SQLite database is empty.
 const countStmt = db.prepare('SELECT COUNT(*) as count FROM declarations');
 const { count } = countStmt.get();
 
@@ -89,14 +82,26 @@ if (count === 0) {
 
 // Middleware
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.sendStatus(200);
+  const origin = req.headers.origin;
+  const originAllowed = !origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin);
+  if (origin && allowedOrigins.length > 0 && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Vary', 'Origin');
+  } else if (allowedOrigins.length === 0) {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+  res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, X-Delete-Token');
+  if (req.method === 'OPTIONS') return res.sendStatus(originAllowed ? 204 : 403);
+  if (!originAllowed) return res.sendStatus(403);
   next();
 });
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', storage: 'sqlite' });
+});
 
 const publicFiles = new Map([
   ['/', 'index.html'],
@@ -243,6 +248,7 @@ app.post('/api/declarations', (req, res) => {
 app.post('/api/declarations/:id/amen', (req, res) => {
   try {
     const { id } = req.params;
+
     const updateStmt = db.prepare('UPDATE declarations SET amen_count = amen_count + 1 WHERE id = ?');
     const result = updateStmt.run(id);
 
@@ -314,5 +320,5 @@ app.get('/api/stats', (req, res) => {
 
 // Start Server
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✨ Servidor "Minha Profissão de Fé" rodando em http://localhost:${PORT}`);
+  console.log(`✨ Servidor "Minha Profissão de Fé" rodando em http://localhost:${PORT} | armazenamento: SQLite`);
 });

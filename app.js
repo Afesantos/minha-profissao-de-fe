@@ -5,6 +5,7 @@
 // Data Management Service (server API)
 const AUTHOR_TOKENS_KEY = 'minha_profissao_de_fe_author_tokens';
 const LOCAL_DECLARATIONS_KEY = 'minha_profissao_de_fe_pages_data';
+const API_BASE_URL = (window.FAITH_API_BASE_URL || '').replace(/\/$/, '');
 const INITIAL_DECLARATIONS = [{
   id: 1,
   name: 'Profeta Habacuque',
@@ -46,7 +47,7 @@ const FaithStorage = {
   async requestApi(url, options) {
     let response;
     try {
-      response = await fetch(url, options);
+      response = await fetch(`${API_BASE_URL}${url}`, options);
     } catch {
       this.apiAvailable = false;
       return null;
