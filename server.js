@@ -255,7 +255,7 @@ app.delete('/api/declarations/:id', (req, res) => {
     }
 
     // Se a declaração tiver token de autor registrado, valida o token
-    if (declaration.delete_token && declaration.delete_token !== clientToken) {
+    if (!declaration.delete_token || declaration.delete_token !== clientToken) {
       return res.status(403).json({ success: false, message: 'Apenas o autor pode excluir esta declaração.' });
     }
 
