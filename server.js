@@ -97,8 +97,33 @@ app.use((req, res, next) => {
 });
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(__dirname));
+
+const publicFiles = new Map([
+  ['/', 'index.html'],
+  ['/index.html', 'index.html'],
+  ['/app.js', 'app.js'],
+  ['/style.css', 'style.css'],
+  ['/50mais_logo.png', '50mais_logo.png'],
+  ['/OraçãoHabacuque-Grupo-Águas.mp3', 'OraçãoHabacuque-Grupo-Águas.mp3']
+]);
+
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+
+  let requestPath;
+  try {
+    requestPath = decodeURIComponent(req.path);
+  } catch {
+    return res.sendStatus(400);
+  }
+
+  const fileName = publicFiles.get(requestPath);
+  if (!fileName) return next();
+
+  res.sendFile(path.join(__dirname, fileName), (error) => {
+    if (error) next(error);
+  });
+});
 
 // Sanitize helper
 function sanitizeText(str) {
