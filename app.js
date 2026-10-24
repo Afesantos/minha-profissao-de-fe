@@ -4,6 +4,33 @@
 
 // Data Management Service (server API)
 const AUTHOR_TOKENS_KEY = 'minha_profissao_de_fe_author_tokens';
+const LOCAL_DECLARATIONS_KEY = 'minha_profissao_de_fe_pages_data';
+const INITIAL_DECLARATIONS = [{
+  id: 1,
+  name: 'Profeta Habacuque',
+  declaration: 'Ainda que a figueira não floresça, nem haja fruto na vide; ainda que decepcione o produto da oliveira, e os campos não produzam mantimento; todavia eu me alegrarei no SENHOR e exultarei no Deus da minha salvação.',
+  color_theme: 'amarelo-suave',
+  rotation: 0,
+  amen_count: 0,
+  is_pinned: 1,
+  created_at: new Date(Date.now() - 24 * 3600000).toISOString()
+}];
+
+function sanitizeText(value) {
+  if (typeof value !== 'string') return '';
+  return value.trim()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function generateId() {
+  return typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 function getAuthorTokens() {
   try {
@@ -14,13 +41,51 @@ function getAuthorTokens() {
 }
 
 const FaithStorage = {
-  async getAll() {
-    const response = await fetch('/api/declarations');
-    const result = await response.json();
-    if (!response.ok || !result.success) {
-      throw new Error(result.message || 'Não foi possível carregar o mural.');
+  apiAvailable: null,
+
+  async requestApi(url, options) {
+    let response;
+    try {
+      response = await fetch(url, options);
+    } catch {
+      this.apiAvailable = false;
+      return null;
     }
-    return result.declarations;
+
+    if (!(response.headers.get('content-type') || '').includes('application/json')) {
+      this.apiAvailable = false;
+      return null;
+    }
+
+    const result = await response.json();
+    this.apiAvailable = true;
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || 'Não foi possível concluir a operação.');
+    }
+    return result;
+  },
+
+  getLocalAll() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LOCAL_DECLARATIONS_KEY) || 'null');
+      if (Array.isArray(saved) && saved.length) return saved;
+    } catch {
+      // Replace invalid local data with the initial mural.
+    }
+    this.saveLocalAll(INITIAL_DECLARATIONS);
+    return [...INITIAL_DECLARATIONS];
+  },
+
+  saveLocalAll(items) {
+    localStorage.setItem(LOCAL_DECLARATIONS_KEY, JSON.stringify(items));
+  },
+
+  async getAll() {
+    if (this.apiAvailable !== false) {
+      const result = await this.requestApi('/api/declarations');
+      if (result) return result.declarations;
+    }
+    return this.getLocalAll();
   },
 
   async query({ search = '', color = 'all', sort = 'recent' }) {
@@ -28,29 +93,62 @@ const FaithStorage = {
     if (search) params.set('q', search);
     if (color && color !== 'all') params.set('color', color);
     if (sort === 'amen') params.set('sort', 'amen');
-    const response = await fetch(`/api/declarations?${params.toString()}`);
-    const result = await response.json();
-    if (!response.ok || !result.success) {
-      throw new Error(result.message || 'Não foi possível carregar o mural.');
+    if (this.apiAvailable !== false) {
+      const result = await this.requestApi(`/api/declarations?${params.toString()}`);
+      if (result) return result.declarations;
     }
-    return result.declarations;
+
+    let items = this.getLocalAll();
+    if (search) {
+      const term = search.toLocaleLowerCase('pt-BR');
+      items = items.filter(item => `${item.name} ${item.declaration}`.toLocaleLowerCase('pt-BR').includes(term));
+    }
+    if (color && color !== 'all') items = items.filter(item => item.color_theme === color);
+    items.sort((a, b) => {
+      if (Boolean(a.is_pinned) !== Boolean(b.is_pinned)) return Number(b.is_pinned) - Number(a.is_pinned);
+      if (sort === 'amen') return (b.amen_count || 0) - (a.amen_count || 0);
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+    return items;
   },
 
   async add({ name, declaration, color_theme }) {
-    const deleteToken = crypto.randomUUID();
-    const response = await fetch('/api/declarations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, declaration, color_theme, delete_token: deleteToken })
-    });
-    const result = await response.json();
-    if (!response.ok || !result.success) {
-      throw new Error(result.message || 'Não foi possível publicar sua declaração.');
+    if (this.apiAvailable !== false) {
+      const deleteToken = generateId();
+      const result = await this.requestApi('/api/declarations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, declaration, color_theme, delete_token: deleteToken })
+      });
+      if (result) {
+        const tokens = getAuthorTokens();
+        tokens[result.declaration.id] = deleteToken;
+        localStorage.setItem(AUTHOR_TOKENS_KEY, JSON.stringify(tokens));
+        return result.declaration;
+      }
     }
+
+    const items = this.getLocalAll();
+    const themes = ['amarelo-suave', 'azul-claro', 'verde-suave', 'coral', 'lilas', 'azul-petroleo', 'creme', 'rosa-suave'];
+    const selectedTheme = themes.includes(color_theme) ? color_theme : themes[Math.floor(Math.random() * themes.length)];
+    const id = Math.max(0, ...items.map(item => Number(item.id) || 0)) + 1;
+    const deleteToken = generateId();
+    const newItem = {
+      id,
+      name: sanitizeText(name),
+      declaration: sanitizeText(declaration),
+      color_theme: selectedTheme,
+      rotation: Number((Math.random() * 2 - 1).toFixed(2)),
+      amen_count: 0,
+      is_pinned: 0,
+      created_at: new Date().toISOString()
+    };
+    items.unshift(newItem);
+    this.saveLocalAll(items);
     const tokens = getAuthorTokens();
-    tokens[result.declaration.id] = deleteToken;
+    tokens[id] = deleteToken;
     localStorage.setItem(AUTHOR_TOKENS_KEY, JSON.stringify(tokens));
-    return result.declaration;
+    return newItem;
   },
 
   async delete(id) {
@@ -59,34 +157,52 @@ const FaithStorage = {
     if (!deleteToken) {
       throw new Error('Este navegador não possui autorização para excluir esta declaração.');
     }
-    const response = await fetch(`/api/declarations/${id}`, {
-      method: 'DELETE',
-      headers: { 'x-delete-token': deleteToken }
-    });
-    const result = await response.json();
-    if (!response.ok || !result.success) {
-      throw new Error(result.message || 'Não foi possível excluir a declaração.');
+    if (this.apiAvailable !== false) {
+      const result = await this.requestApi(`/api/declarations/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-delete-token': deleteToken }
+      });
+      if (result) {
+        delete tokens[id];
+        localStorage.setItem(AUTHOR_TOKENS_KEY, JSON.stringify(tokens));
+        return;
+      }
     }
+
+    const items = this.getLocalAll();
+    const target = items.find(item => String(item.id) === String(id));
+    if (!target || target.is_pinned || target.name.toLowerCase().includes('habacuque')) {
+      throw new Error('Esta declaração não pode ser excluída.');
+    }
+    this.saveLocalAll(items.filter(item => String(item.id) !== String(id)));
     delete tokens[id];
     localStorage.setItem(AUTHOR_TOKENS_KEY, JSON.stringify(tokens));
   },
 
   async addAmen(id) {
-    const response = await fetch(`/api/declarations/${id}/amen`, { method: 'POST' });
-    const result = await response.json();
-    if (!response.ok || !result.success) {
-      throw new Error(result.message || 'Não foi possível registrar o amém.');
+    if (this.apiAvailable !== false) {
+      const result = await this.requestApi(`/api/declarations/${id}/amen`, { method: 'POST' });
+      if (result) return result.amen_count;
     }
-    return result.amen_count;
+
+    const items = this.getLocalAll();
+    const item = items.find(entry => String(entry.id) === String(id));
+    if (!item) throw new Error('Declaração não encontrada.');
+    item.amen_count = (item.amen_count || 0) + 1;
+    this.saveLocalAll(items);
+    return item.amen_count;
   },
 
   async getStats() {
-    const response = await fetch('/api/stats');
-    const result = await response.json();
-    if (!response.ok || !result.success) {
-      throw new Error(result.message || 'Não foi possível carregar as estatísticas.');
+    if (this.apiAvailable !== false) {
+      const result = await this.requestApi('/api/stats');
+      if (result) return result.stats;
     }
-    return result.stats;
+    const items = this.getLocalAll();
+    return {
+      total_declarations: items.length,
+      total_amens: items.reduce((total, item) => total + (item.amen_count || 0), 0)
+    };
   },
 
   async exportJSON() {
@@ -124,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const statDeclarations = document.getElementById('stat-declarations');
   const statAmens = document.getElementById('stat-amens');
+  const storageModeNote = document.getElementById('storage-mode-note');
   const successModal = document.getElementById('success-modal');
   const btnModalClose = document.getElementById('btn-modal-close');
   const btnModalShare = document.getElementById('btn-modal-share');
@@ -218,6 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const items = await FaithStorage.query({ search: '', color: 'all', sort: 'recent' });
       renderCards(items);
+      if (storageModeNote) storageModeNote.hidden = FaithStorage.apiAvailable !== false;
       await updateStatsDisplay();
     } catch (error) {
       muralGrid.innerHTML = '<p class="mural-loading-state">Não foi possível conectar ao mural. Tente novamente em instantes.</p>';

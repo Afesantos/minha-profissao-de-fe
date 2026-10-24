@@ -859,6 +859,13 @@ input[type="text"]#name-input:focus {
   margin: 0 auto 1.75rem auto;
 }
 
+.mural-storage-note {
+  max-width: 620px;
+  margin: -1rem auto 1.75rem;
+  color: #8a4b08;
+  font-size: 0.9rem;
+}
+
 /* MURAL CONTROLS BAR */
 .mural-controls-bar {
   display: flex;

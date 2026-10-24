@@ -1,0 +1,5 @@
+node_modules/
+profissoes_fe.db
+profissoes_fe.db-shm
+profissoes_fe.db-wal
+_site/
