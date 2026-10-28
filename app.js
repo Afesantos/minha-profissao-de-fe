@@ -35,7 +35,7 @@ const HABAKKUK_DECLARATION = {
   declaration: 'Ainda que a figueira não floresça, nem haja fruto na vide; ainda que decepcione o produto da oliveira, e os campos não produzam mantimento; ainda que as ovelhas da malhada sejam arrebatadas, e nos currais não haja gado; todavia eu me alegrarei no SENHOR e exultarei no Deus da minha salvação.',
   color_theme: 'amarelo-suave',
   rotation: 0,
-  amen_count: 48,
+  amen_count: 0,
   is_pinned: 1,
   created_at: '2026-09-24T18:20:59.000Z'
 };
