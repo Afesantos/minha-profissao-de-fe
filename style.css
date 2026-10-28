@@ -866,6 +866,20 @@ input[type="text"]#name-input:focus {
   font-size: 0.9rem;
 }
 
+.mural-data-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65rem;
+  margin: -0.75rem 0 1.75rem;
+}
+
+.mural-data-actions .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
 /* MURAL CONTROLS BAR */
 .mural-controls-bar {
   display: flex;

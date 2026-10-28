@@ -2,20 +2,12 @@
 // MINHA PROFISSÃO DE FÉ — CLIENT-SIDE JAVASCRIPT
 // =========================================================
 
-// Data Management Service (server API)
+// GitHub Pages uses a read-only JSON seed and browser-local changes.
 const AUTHOR_TOKENS_KEY = 'minha_profissao_de_fe_author_tokens';
 const LOCAL_DECLARATIONS_KEY = 'minha_profissao_de_fe_pages_data';
-const API_BASE_URL = (window.FAITH_API_BASE_URL || '').replace(/\/$/, '');
-const INITIAL_DECLARATIONS = [{
-  id: 1,
-  name: 'Profeta Habacuque',
-  declaration: 'Ainda que a figueira não floresça, nem haja fruto na vide; ainda que decepcione o produto da oliveira, e os campos não produzam mantimento; todavia eu me alegrarei no SENHOR e exultarei no Deus da minha salvação.',
-  color_theme: 'amarelo-suave',
-  rotation: 0,
-  amen_count: 0,
-  is_pinned: 1,
-  created_at: new Date(Date.now() - 24 * 3600000).toISOString()
-}];
+const JSON_DATA_VERSION_KEY = 'minha_profissao_de_fe_json_version';
+const JSON_DATA_VERSION = 'pages-json-2026-10-24-v1';
+const JSON_DATA_URL = new URL('./declarations.json', document.baseURI);
 
 function sanitizeText(value) {
   if (typeof value !== 'string') return '';
@@ -42,100 +34,26 @@ function getAuthorTokens() {
 }
 
 const FaithStorage = {
-  apiAvailable: null,
+  listenToDeclarations(callback) {
+    const { db, collection, query, orderBy, onSnapshot } = window.FirebaseDB;
+    const q = query(collection(db, "declarations"), orderBy("created_at", "desc"));
 
-  async requestApi(url, options) {
-    let response;
-    try {
-      response = await fetch(`${API_BASE_URL}${url}`, options);
-    } catch {
-      this.apiAvailable = false;
-      return null;
-    }
-
-    if (!(response.headers.get('content-type') || '').includes('application/json')) {
-      this.apiAvailable = false;
-      return null;
-    }
-
-    const result = await response.json();
-    this.apiAvailable = true;
-    if (!response.ok || !result.success) {
-      throw new Error(result.message || 'Não foi possível concluir a operação.');
-    }
-    return result;
-  },
-
-  getLocalAll() {
-    try {
-      const saved = JSON.parse(localStorage.getItem(LOCAL_DECLARATIONS_KEY) || 'null');
-      if (Array.isArray(saved) && saved.length) return saved;
-    } catch {
-      // Replace invalid local data with the initial mural.
-    }
-    this.saveLocalAll(INITIAL_DECLARATIONS);
-    return [...INITIAL_DECLARATIONS];
-  },
-
-  saveLocalAll(items) {
-    localStorage.setItem(LOCAL_DECLARATIONS_KEY, JSON.stringify(items));
-  },
-
-  async getAll() {
-    if (this.apiAvailable !== false) {
-      const result = await this.requestApi('/api/declarations');
-      if (result) return result.declarations;
-    }
-    return this.getLocalAll();
-  },
-
-  async query({ search = '', color = 'all', sort = 'recent' }) {
-    const params = new URLSearchParams();
-    if (search) params.set('q', search);
-    if (color && color !== 'all') params.set('color', color);
-    if (sort === 'amen') params.set('sort', 'amen');
-    if (this.apiAvailable !== false) {
-      const result = await this.requestApi(`/api/declarations?${params.toString()}`);
-      if (result) return result.declarations;
-    }
-
-    let items = this.getLocalAll();
-    if (search) {
-      const term = search.toLocaleLowerCase('pt-BR');
-      items = items.filter(item => `${item.name} ${item.declaration}`.toLocaleLowerCase('pt-BR').includes(term));
-    }
-    if (color && color !== 'all') items = items.filter(item => item.color_theme === color);
-    items.sort((a, b) => {
-      if (Boolean(a.is_pinned) !== Boolean(b.is_pinned)) return Number(b.is_pinned) - Number(a.is_pinned);
-      if (sort === 'amen') return (b.amen_count || 0) - (a.amen_count || 0);
-      return new Date(b.created_at) - new Date(a.created_at);
-    });
-    return items;
+    return onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      items.sort((a, b) => (b.is_pinned || 0) - (a.is_pinned || 0));
+      callback(items);
+    }, (error) => console.error("Erro ao escutar declarações:", error));
   },
 
   async add({ name, declaration, color_theme }) {
-    if (this.apiAvailable !== false) {
-      const deleteToken = generateId();
-      const result = await this.requestApi('/api/declarations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, declaration, color_theme, delete_token: deleteToken })
-      });
-      if (result) {
-        const tokens = getAuthorTokens();
-        tokens[result.declaration.id] = deleteToken;
-        localStorage.setItem(AUTHOR_TOKENS_KEY, JSON.stringify(tokens));
-        return result.declaration;
-      }
-    }
-
-    const items = this.getLocalAll();
+    const { db, collection, addDoc } = window.FirebaseDB;
     const themes = ['amarelo-suave', 'azul-claro', 'verde-suave', 'coral', 'lilas', 'azul-petroleo', 'creme', 'rosa-suave'];
     const selectedTheme = themes.includes(color_theme) ? color_theme : themes[Math.floor(Math.random() * themes.length)];
-    const id = Math.max(0, ...items.map(item => Number(item.id) || 0)) + 1;
-    const deleteToken = generateId();
+
     const newItem = {
-      id,
       name: sanitizeText(name),
       declaration: sanitizeText(declaration),
       color_theme: selectedTheme,
@@ -144,80 +62,36 @@ const FaithStorage = {
       is_pinned: 0,
       created_at: new Date().toISOString()
     };
-    items.unshift(newItem);
-    this.saveLocalAll(items);
+
+    const docRef = await addDoc(collection(db, "declarations"), newItem);
     const tokens = getAuthorTokens();
-    tokens[id] = deleteToken;
+    tokens[docRef.id] = true;
     localStorage.setItem(AUTHOR_TOKENS_KEY, JSON.stringify(tokens));
-    return newItem;
+
+    return { id: docRef.id, ...newItem };
+  },
+
+  async addAmen(id) {
+    const { db, doc, updateDoc, increment } = window.FirebaseDB;
+    await updateDoc(doc(db, "declarations", id), {
+      amen_count: increment(1)
+    });
   },
 
   async delete(id) {
     const tokens = getAuthorTokens();
-    const deleteToken = tokens[id];
-    if (!deleteToken) {
-      throw new Error('Este navegador não possui autorização para excluir esta declaração.');
-    }
-    if (this.apiAvailable !== false) {
-      const result = await this.requestApi(`/api/declarations/${id}`, {
-        method: 'DELETE',
-        headers: { 'x-delete-token': deleteToken }
-      });
-      if (result) {
-        delete tokens[id];
-        localStorage.setItem(AUTHOR_TOKENS_KEY, JSON.stringify(tokens));
-        return;
-      }
-    }
-
-    const items = this.getLocalAll();
-    const target = items.find(item => String(item.id) === String(id));
-    if (!target || target.is_pinned || target.name.toLowerCase().includes('habacuque')) {
-      throw new Error('Esta declaração não pode ser excluída.');
-    }
-    this.saveLocalAll(items.filter(item => String(item.id) !== String(id)));
+    if (!tokens[id]) throw new Error('Este navegador não possui autorização para excluir esta declaração.');
+    const { db, doc, deleteDoc } = window.FirebaseDB;
+    await deleteDoc(doc(db, "declarations", id));
     delete tokens[id];
     localStorage.setItem(AUTHOR_TOKENS_KEY, JSON.stringify(tokens));
   },
 
-  async addAmen(id) {
-    if (this.apiAvailable !== false) {
-      const result = await this.requestApi(`/api/declarations/${id}/amen`, { method: 'POST' });
-      if (result) return result.amen_count;
-    }
-
-    const items = this.getLocalAll();
-    const item = items.find(entry => String(entry.id) === String(id));
-    if (!item) throw new Error('Declaração não encontrada.');
-    item.amen_count = (item.amen_count || 0) + 1;
-    this.saveLocalAll(items);
-    return item.amen_count;
-  },
-
-  async getStats() {
-    if (this.apiAvailable !== false) {
-      const result = await this.requestApi('/api/stats');
-      if (result) return result.stats;
-    }
-    const items = this.getLocalAll();
+  async getStats(items = []) {
     return {
       total_declarations: items.length,
       total_amens: items.reduce((total, item) => total + (item.amen_count || 0), 0)
     };
-  },
-
-  async exportJSON() {
-    const list = await this.getAll();
-    const dataStr = JSON.stringify(list, null, 2);
-    const blob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `minha_profissao_de_fe_${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   }
 };
 
@@ -242,6 +116,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const statDeclarations = document.getElementById('stat-declarations');
   const statAmens = document.getElementById('stat-amens');
   const storageModeNote = document.getElementById('storage-mode-note');
+  const btnExportJson = document.getElementById('btn-export-json');
+  const btnImportJson = document.getElementById('btn-import-json');
+  const jsonFileInput = document.getElementById('json-file-input');
   const successModal = document.getElementById('success-modal');
   const btnModalClose = document.getElementById('btn-modal-close');
   const btnModalShare = document.getElementById('btn-modal-share');
@@ -336,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const items = await FaithStorage.query({ search: '', color: 'all', sort: 'recent' });
       renderCards(items);
-      if (storageModeNote) storageModeNote.hidden = FaithStorage.apiAvailable !== false;
+      if (storageModeNote) storageModeNote.hidden = false;
       await updateStatsDisplay();
     } catch (error) {
       muralGrid.innerHTML = '<p class="mural-loading-state">Não foi possível conectar ao mural. Tente novamente em instantes.</p>';
@@ -698,6 +575,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  btnExportJson.addEventListener('click', async () => {
+    try {
+      await FaithStorage.exportJSON();
+      showToast('Backup JSON baixado.', '✅');
+    } catch (error) {
+      showToast(error.message || 'Não foi possível exportar o JSON.', '⚠️');
+    }
+  });
+
+  btnImportJson.addEventListener('click', () => jsonFileInput.click());
+
+  jsonFileInput.addEventListener('change', async () => {
+    const [file] = jsonFileInput.files || [];
+    if (!file) return;
+    try {
+      await FaithStorage.importJSON(file);
+      await loadDeclarations();
+      showToast('Backup JSON importado neste navegador.', '✅');
+    } catch (error) {
+      showToast(error.message || 'Arquivo JSON inválido.', '⚠️');
+    } finally {
+      jsonFileInput.value = '';
+    }
+  });
+
 
 
   // 7. SCRIPTURE SPEECH SYNTHESIS & AMBIENT PEACE CHORDS
@@ -785,6 +687,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Initial render
-  loadDeclarations();
+  // Initial render & real-time updates
+  FaithStorage.listenToDeclarations(async (declarations) => {
+    renderCards(declarations);
+    const stats = await FaithStorage.getStats(declarations);
+    if (statDeclarations) statDeclarations.textContent = stats.total_declarations;
+    if (statAmens) statAmens.textContent = stats.total_amens;
+  });
 });

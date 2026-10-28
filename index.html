@@ -29,6 +29,33 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <link rel="stylesheet" href="style.css">
+
+  <!-- Firebase SDK via CDN -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, increment, query, orderBy, onSnapshot
+    } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+    // Cole aqui o seu firebaseConfig obtido no Passo 1
+    const firebaseConfig = {
+      apiKey: "AIzaSyCEAza1F4DACsC1h-WLxeDgMfUJyRa35aA",
+      authDomain: "minha-profissao-de-fe.firebaseapp.com",
+      projectId: "minha-profissao-de-fe",
+      storageBucket: "minha-profissao-de-fe.appspot.com",
+      messagingSenderId: "308642155494",
+      appId: "1:308642155494:web:e591c48b3ffbdabfb82427"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.FirebaseDB = {
+      db, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, increment, query, orderBy, onSnapshot
+    };
+  </script>
+
+  <script src="app.js"></script>
 </head>
 
 <body>
@@ -261,9 +288,18 @@
             Leia as declarações de outras pessoas e seja encorajado pela fé delas.
           </p>
           <p id="storage-mode-note" class="mural-storage-note" hidden>
-            Neste site estático, as declarações ficam salvas somente neste navegador e não são compartilhadas com outros dispositivos.
+            O JSON publicado é somente leitura. Novas declarações ficam neste navegador; use os controles para exportar
+            ou importar um backup.
           </p>
-
+          <div class="mural-data-actions">
+            <button type="button" id="btn-export-json" class="btn-secondary">
+              <i data-lucide="download"></i> Exportar JSON
+            </button>
+            <button type="button" id="btn-import-json" class="btn-secondary">
+              <i data-lucide="upload"></i> Importar JSON
+            </button>
+            <input type="file" id="json-file-input" accept="application/json,.json" hidden>
+          </div>
 
         </div>
 
@@ -336,8 +372,6 @@
       </div>
     </div>
   </footer>
-
-  <script src="app.js"></script>
 </body>
 
 </html>
