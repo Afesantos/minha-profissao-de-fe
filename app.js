@@ -422,8 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    showToast('Amém! Sua bênção foi registrada no mural. 🙏', '❤️');
-    updateStatsDisplay();
+    showToast('Amém! Sua votação foi registrada. 🙏', '❤️');
   }
 
   async function handleShare(item) {
