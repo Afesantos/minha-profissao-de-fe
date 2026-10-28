@@ -612,33 +612,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let newItem;
     try {
-      newItem = await FaithStorage.add({ name, declaration, color_theme: colorTheme });
+      newItem = await Promise.race([
+        FaithStorage.add({ name, declaration, color_theme: colorTheme }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Tempo limite esgotado. Verifique sua conexão com a internet ou as permissões do Firestore.')), 10000))
+      ]);
+
+      currentNewDeclaration = newItem;
+
+      // Reset Form
+      form.reset();
+      charCounter.textContent = '0 / 1.000';
+      const randomRadio = document.querySelector('input[name="card-color"][value="random"]');
+      if (randomRadio) randomRadio.checked = true;
+
+      // Trigger celebration
+      triggerCelebration();
+
+      // Show Success Modal
+      showSuccessModal(newItem);
     } catch (error) {
+      showToast(error.message || 'Não foi possível salvar sua declaração. Tente novamente.', '⚠️');
+    } finally {
+      // Garante que o botão e o spinner nunca fiquem travados
       if (btnContent) btnContent.style.display = 'inline-flex';
       if (btnLoader) btnLoader.style.display = 'none';
       btnSubmit.disabled = false;
-      showToast(error.message || 'Não foi possível salvar sua declaração. Tente novamente.', '⚠️');
-      return;
     }
-
-    currentNewDeclaration = newItem;
-
-    // Restaura botão
-    if (btnContent) btnContent.style.display = 'inline-flex';
-    if (btnLoader) btnLoader.style.display = 'none';
-    btnSubmit.disabled = false;
-
-    // Reset Form
-    form.reset();
-    charCounter.textContent = '0 / 1.000';
-    const randomRadio = document.querySelector('input[name="card-color"][value="random"]');
-    if (randomRadio) randomRadio.checked = true;
-
-    // Trigger celebration
-    triggerCelebration();
-
-    // Show Success Modal
-    showSuccessModal(newItem);
   });
 
   function triggerCelebration() {
