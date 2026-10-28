@@ -28,19 +28,67 @@ function getAuthorTokens() {
   }
 }
 
+const HABAKKUK_DOC_ID = 'habacuque-fixo';
+const HABAKKUK_DECLARATION = {
+  id: HABAKKUK_DOC_ID,
+  name: 'Profeta Habacuque',
+  declaration: 'Ainda que a figueira não floresça, nem haja fruto na vide; ainda que decepcione o produto da oliveira, e os campos não produzam mantimento; ainda que as ovelhas da malhada sejam arrebatadas, e nos currais não haja gado; todavia eu me alegrarei no SENHOR e exultarei no Deus da minha salvação.',
+  color_theme: 'amarelo-suave',
+  rotation: 0,
+  amen_count: 48,
+  is_pinned: 1,
+  created_at: '2026-09-24T18:20:59.000Z'
+};
+
 const FaithStorage = {
   listenToDeclarations(callback) {
     const { db, collection, query, orderBy, onSnapshot } = window.FirebaseDB;
     const q = query(collection(db, "declarations"), orderBy("created_at", "desc"));
 
+    // Tenta sincronizar a profissão de fé de Habacuque no Firestore se não existir
+    this.ensureHabakkuk();
+
     return onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(doc => ({
+      let items = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
-      items.sort((a, b) => (b.is_pinned || 0) - (a.is_pinned || 0));
+
+      // Garante que a profissão de fé de Habacuque esteja sempre presente
+      const hasHabakkuk = items.some(item =>
+        item.id === HABAKKUK_DOC_ID ||
+        item.is_pinned === 1 ||
+        (item.name && item.name.toLowerCase().includes('habacuque'))
+      );
+
+      if (!hasHabakkuk) {
+        items.unshift({ ...HABAKKUK_DECLARATION });
+      }
+
+      // Ordena garantindo que itens fixados (como Habacuque) fiquem sempre no topo
+      items.sort((a, b) => {
+        const pinA = (a.is_pinned || a.id === HABAKKUK_DOC_ID || (a.name && a.name.toLowerCase().includes('habacuque'))) ? 1 : 0;
+        const pinB = (b.is_pinned || b.id === HABAKKUK_DOC_ID || (b.name && b.name.toLowerCase().includes('habacuque'))) ? 1 : 0;
+        return pinB - pinA;
+      });
+
       callback(items);
     }, (error) => console.error("Erro ao escutar declarações:", error));
+  },
+
+  async ensureHabakkuk() {
+    try {
+      const { db, doc, getDoc, setDoc } = window.FirebaseDB;
+      if (!getDoc || !setDoc) return;
+      const docRef = doc(db, "declarations", HABAKKUK_DOC_ID);
+      const snap = await getDoc(docRef);
+      if (!snap.exists()) {
+        const { id, ...data } = HABAKKUK_DECLARATION;
+        await setDoc(docRef, data);
+      }
+    } catch (e) {
+      // Ignora silenciosamente caso o Firestore esteja inacessível no momento
+    }
   },
 
   async add({ name, declaration, color_theme }) {
@@ -67,13 +115,29 @@ const FaithStorage = {
   },
 
   async addAmen(id) {
-    const { db, doc, updateDoc, increment } = window.FirebaseDB;
-    await updateDoc(doc(db, "declarations", id), {
-      amen_count: increment(1)
-    });
+    const { db, doc, updateDoc, increment, setDoc } = window.FirebaseDB;
+    const docRef = doc(db, "declarations", id);
+    try {
+      await updateDoc(docRef, {
+        amen_count: increment(1)
+      });
+    } catch (err) {
+      if (id === HABAKKUK_DOC_ID && setDoc) {
+        const { id: _, ...data } = HABAKKUK_DECLARATION;
+        await setDoc(docRef, {
+          ...data,
+          amen_count: increment(1)
+        }, { merge: true });
+      } else {
+        throw err;
+      }
+    }
   },
 
   async delete(id) {
+    if (id === HABAKKUK_DOC_ID) {
+      throw new Error('A profissão de fé de Habacuque permanece sempre fixa no mural e não pode ser excluída.');
+    }
     const tokens = getAuthorTokens();
     if (!tokens[id]) throw new Error('Este navegador não possui autorização para excluir esta declaração.');
     const { db, doc, deleteDoc } = window.FirebaseDB;
@@ -228,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function createCardElement(item, isNew = false) {
     const card = document.createElement('article');
     const theme = item.color_theme || 'amarelo-suave';
-    const isHabakkuk = item.is_pinned === 1 || (item.name && item.name.toLowerCase().includes('habacuque'));
+    const isHabakkuk = item.is_pinned === 1 || item.id === HABAKKUK_DOC_ID || (item.name && item.name.toLowerCase().includes('habacuque'));
 
     card.className = `faith-card theme-${theme} ${isHabakkuk ? 'card-pinned-habacuque' : ''} ${isNew ? 'card-new-entrance' : ''}`;
     card.dataset.id = item.id;
@@ -236,7 +300,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const rotation = isHabakkuk ? 0 : (typeof item.rotation === 'number' ? item.rotation : 0);
     card.style.transform = `rotate(${rotation}deg)`;
 
-    const randomDecor = isHabakkuk ? '📜' : DECOR_ICONS[item.id % DECOR_ICONS.length];
+    const iconIndex = typeof item.id === 'number'
+      ? item.id
+      : Math.abs(String(item.id || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0));
+    const randomDecor = isHabakkuk ? '📜' : DECOR_ICONS[iconIndex % DECOR_ICONS.length];
     const themeLabel = isHabakkuk ? '🌟 PROFISSÃO DE FÉ DE HABACUQUE' : 'Ministério 50+ 2026';
     const initials = isHabakkuk ? 'HB' : getInitials(item.name);
     const dateFormatted = isHabakkuk ? 'Cerca de 620 a.C.' : formatDate(item.created_at);

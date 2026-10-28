@@ -34,7 +34,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
     import {
-      getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, increment, query, orderBy, onSnapshot
+      getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, increment, query, orderBy, onSnapshot
     } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
     // Cole aqui o seu firebaseConfig obtido no Passo 1
@@ -51,7 +51,7 @@
     const db = getFirestore(app);
 
     window.FirebaseDB = {
-      db, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, increment, query, orderBy, onSnapshot
+      db, collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, increment, query, orderBy, onSnapshot
     };
   </script>
 
