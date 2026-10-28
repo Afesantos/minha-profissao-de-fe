@@ -21,6 +21,7 @@ function generateId() {
 }
 
 let authorTokensCache = null;
+const sessionAuthorIds = new Set();
 
 function getAuthorTokens() {
   if (!authorTokensCache) {
@@ -33,7 +34,15 @@ function getAuthorTokens() {
   return authorTokensCache;
 }
 
+function isAuthor(id) {
+  if (!id || id === HABAKKUK_DOC_ID) return false;
+  const tokens = getAuthorTokens();
+  return Boolean(tokens[id] || sessionAuthorIds.has(id));
+}
+
 function saveAuthorToken(id) {
+  if (!id) return;
+  sessionAuthorIds.add(id);
   const tokens = getAuthorTokens();
   tokens[id] = true;
   authorTokensCache = tokens;
@@ -45,6 +54,8 @@ function saveAuthorToken(id) {
 }
 
 function removeAuthorToken(id) {
+  if (!id) return;
+  sessionAuthorIds.delete(id);
   const tokens = getAuthorTokens();
   delete tokens[id];
   authorTokensCache = tokens;
@@ -170,8 +181,9 @@ const FaithStorage = {
     if (id === HABAKKUK_DOC_ID) {
       throw new Error('A declaração de fé de Habacuque permanece sempre fixa no mural e não pode ser editada.');
     }
-    const tokens = getAuthorTokens();
-    if (!tokens[id]) throw new Error('Este navegador não possui autorização para editar esta declaração.');
+    if (!isAuthor(id)) {
+      throw new Error('Este navegador não possui autorização para editar esta declaração.');
+    }
     const { db, doc, updateDoc } = window.FirebaseDB;
     await updateDoc(doc(db, "declarations", id), {
       name: sanitizeText(name),
@@ -184,8 +196,9 @@ const FaithStorage = {
     if (id === HABAKKUK_DOC_ID) {
       throw new Error('A declaração de fé de Habacuque permanece sempre fixa no mural e não pode ser excluída.');
     }
-    const tokens = getAuthorTokens();
-    if (!tokens[id]) throw new Error('Este navegador não possui autorização para excluir esta declaração.');
+    if (!isAuthor(id)) {
+      throw new Error('Este navegador não possui autorização para excluir esta declaração.');
+    }
     const { db, doc, deleteDoc } = window.FirebaseDB;
     await deleteDoc(doc(db, "declarations", id));
     removeAuthorToken(id);
@@ -352,7 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeLabel = isHabakkuk ? '🌟 DECLARAÇÃO DE FÉ DE HABACUQUE' : 'Ministério 50+ 2026';
     const initials = isHabakkuk ? 'HB' : getInitials(item.name);
     const dateFormatted = isHabakkuk ? 'Cerca de 620 a.C.' : formatDate(item.created_at);
-    const canManage = !isHabakkuk && Boolean(getAuthorTokens()[item.id]);
+    const canManage = !isHabakkuk && isAuthor(item.id);
 
     card.innerHTML = `
       <div class="card-header-row">
