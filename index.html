@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="pt-BR">
 
@@ -428,4 +429,431 @@
   </footer>
 </body>
 
+=======
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minha Declaração de Fé — Mural Coletivo de Confiança em Deus</title>
+  <meta name="description"
+    content="Um mural coletivo de declarações de fé inspirado em Habacuque 3:17-18. Escreva sua declaração e seja encorajado pela fé de outros.">
+
+  <!-- Favicon -->
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🕊️</text></svg>">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400;1,600&display=swap"
+    rel="stylesheet">
+
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- html2canvas: captura de card como imagem -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Firebase SDK via CDN -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, increment, query, orderBy, onSnapshot
+    } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+    // Cole aqui o seu firebaseConfig obtido no Passo 1
+    const firebaseConfig = {
+      apiKey: "AIzaSyCEAza1F4DACsC1h-WLxeDgMfUJyRa35aA",
+      authDomain: "minha-profissao-de-fe.firebaseapp.com",
+      projectId: "minha-profissao-de-fe",
+      storageBucket: "minha-profissao-de-fe.appspot.com",
+      messagingSenderId: "308642155494",
+      appId: "1:308642155494:web:e591c48b3ffbdabfb82427"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.FirebaseDB = {
+      db, collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, increment, query, orderBy, onSnapshot
+    };
+  </script>
+
+  <script src="app.js"></script>
+</head>
+
+<body>
+
+  <!-- Ambient Light Orbs -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
+  <!-- Top Bar / Navigation -->
+  <header class="site-header">
+    <div class="container header-content">
+      <a href="#inicio" class="brand-logo">
+        <span class="brand-icon">🕊️</span>
+        <div class="brand-text">
+          <span class="brand-title" style="display:block; text-align:center;">MINHA DECLARAÇÃO DE FÉ</span>
+          <span class="brand-subtitle">Habacuque 3:17–18</span>
+        </div>
+      </a>
+
+      <nav class="header-actions" aria-label="Navegação principal">
+        <a class="header-nav-link" href="#mural">Mural</a>
+        <a class="header-nav-cta" href="#formulario"><i data-lucide="pen-line"></i><span>Declarar minha fé</span></a>
+        <button id="btn-ambient-sound" class="btn-sound-toggle" title="Tocar Oração de Habacuque"
+          aria-label="Tocar Oração de Habacuque">
+          <i data-lucide="volume-2"></i>
+          <span class="sound-label">Oração de Habacuque</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO SECTION -->
+    <section id="inicio" class="hero-section">
+      <div class="container hero-container">
+
+        <div class="badge-tag animate-fade-in">
+          <span class="badge-sparkle">✨</span>
+          <span>PALAVRA DE ESPERANÇA & COMUNHÃO</span>
+          <span>Ministério 50+ PIBJI</span>
+        </div>
+
+        <div class="hero-title-img animate-fade-in delay-1">
+          <img src="msgApp.png" alt="Minha Declaração de Fé" class="hero-title-image">
+        </div>
+
+        <h2 class="hero-quote-highlight animate-fade-in delay-2">
+          “Mas o meu justo viverá pela fé.” <span>Hebreus 10:38</span>
+        </h2>
+
+        <!-- Biblical Context Card -->
+        <div class="scripture-card animate-fade-in delay-3">
+          <div class="scripture-card-header">
+            <div class="scripture-badge">
+              <i data-lucide="book-open"></i> Habacuque 3:17-18
+            </div>
+            <button id="btn-read-verse" class="btn-icon-text" title="Ouvir leitura do versículo">
+              <i data-lucide="volume-2"></i> <span>Ouvir passagem</span>
+            </button>
+          </div>
+
+          <blockquote class="biblical-text" style="color: #dc2626;">
+            “Ainda que a figueira não floresça, nem haja fruto na vide; ainda que decepcione o produto da oliveira, e os
+            campos não produzam mantimento; ainda que as ovelhas da malhada sejam arrebatadas, e nos currais não haja
+            gado;
+            <strong>todavia eu me alegrarei no SENHOR e exultarei no Deus da minha salvação.</strong>”
+          </blockquote>
+
+          <div class="scripture-divider"></div>
+
+          <p class="hero-intro-text">
+            Habacuque compreendeu que <strong>Deus continua no controle da história</strong>. Mesmo diante de tempos
+            difíceis e do anúncio do juízo sobre Judá, o profeta decidiu confiar no Senhor.
+          </p>
+
+          <div class="faith-callout">
+            <span class="faith-callout-icon">💡</span>
+            <p><strong>Mesmo quando as circunstâncias mudam, nossa confiança em Deus permanece.</strong></p>
+          </div>
+
+          <div class="hero-question-box">
+            <span class="question-pre">Agora é a sua vez:</span>
+            <h3 class="question-main">Qual é a sua declaração de fé?</h3>
+          </div>
+
+          <div class="hero-actions">
+            <a href="#formulario" class="hero-primary-link"><i data-lucide="pen-line"></i> Compartilhe sua fé</a>
+            <a href="#mural" class="hero-secondary-link"><i data-lucide="messages-square"></i> Ler declarações</a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- FORM SECTION -->
+    <section id="formulario" class="form-section">
+      <div class="container">
+        <div class="form-card-wrapper animate-on-scroll">
+
+          <div class="form-header">
+            <div class="form-header-icon">
+              <i data-lucide="pen-tool"></i>
+            </div>
+            <h2 class="form-title">Publique Sua Declaração</h2>
+            <p class="form-subtitle">Compartilhe o motivo da sua confiança em Deus e fortaleça irmãos em todo lugar.</p>
+          </div>
+
+          <form id="faith-form" novalidate>
+            <!-- Field 1: Declaration -->
+            <div class="form-group">
+              <div class="label-row">
+                <label for="declaration-input" class="form-label">
+                  <i data-lucide="scroll"></i> Minha declaração de fé <span class="required">*</span>
+                </label>
+                <span id="char-counter" class="char-counter">0 / 1.000</span>
+              </div>
+              <textarea id="declaration-input" name="declaration" rows="4" maxlength="1000"
+                placeholder="“Ainda que ____________, eu continuarei confiando no Senhor porque ____________.”"
+                required></textarea>
+              <div class="field-hint" id="declaration-hint">
+                Expresse com suas palavras a sua certeza e esperança em Deus.
+              </div>
+              <div class="field-error" id="declaration-error"></div>
+            </div>
+
+            <!-- Field 2: Name -->
+            <div class="form-group">
+              <div class="label-row">
+                <label for="name-input" class="form-label">
+                  <i data-lucide="user"></i> Seu nome <span class="required">*</span>
+                </label>
+                <span class="char-counter-name" id="name-counter">2 a 100 caracteres</span>
+              </div>
+              <div class="input-with-icon">
+                <i data-lucide="user-check" class="input-icon"></i>
+                <input type="text" id="name-input" name="name" minlength="2" maxlength="100"
+                  placeholder="Digite seu nome (ou como deseja ser identificado)" required>
+              </div>
+              <div class="field-error" id="name-error"></div>
+            </div>
+
+            <!-- Color Palette Choice -->
+            <div class="form-group">
+              <label class="form-label">
+                <i data-lucide="palette"></i> Escolha a cor do seu cartão <span class="optional">(ou deixe
+                  aleatório)</span>
+              </label>
+              <div class="color-picker-grid" id="color-picker" role="radiogroup" aria-label="Escolha a cor do cartão">
+                <label class="color-swatch-item">
+                  <input type="radio" name="card-color" value="random" checked>
+                  <span class="color-swatch swatch-random" title="Cor Surpresa / Aleatória">
+                    <i data-lucide="sparkles"></i>
+                  </span>
+                  <span class="color-name">Surpresa</span>
+                </label>
+
+                <label class="color-swatch-item">
+                  <input type="radio" name="card-color" value="amarelo-suave">
+                  <span class="color-swatch swatch-amarelo" title="Amarelo Suave"></span>
+                  <span class="color-name">Dourado</span>
+                </label>
+
+                <label class="color-swatch-item">
+                  <input type="radio" name="card-color" value="azul-claro">
+                  <span class="color-swatch swatch-azul" title="Azul Celeste"></span>
+                  <span class="color-name">Celeste</span>
+                </label>
+
+                <label class="color-swatch-item">
+                  <input type="radio" name="card-color" value="verde-suave">
+                  <span class="color-swatch swatch-verde" title="Verde Esperança"></span>
+                  <span class="color-name">Esperança</span>
+                </label>
+
+                <label class="color-swatch-item">
+                  <input type="radio" name="card-color" value="coral">
+                  <span class="color-swatch swatch-coral" title="Coral Calmo"></span>
+                  <span class="color-name">Coral</span>
+                </label>
+
+                <label class="color-swatch-item">
+                  <input type="radio" name="card-color" value="lilas">
+                  <span class="color-swatch swatch-lilas" title="Lilás Graça"></span>
+                  <span class="color-name">Lilás</span>
+                </label>
+
+                <label class="color-swatch-item">
+                  <input type="radio" name="card-color" value="azul-petroleo">
+                  <span class="color-swatch swatch-petroleo" title="Azul Petróleo"></span>
+                  <span class="color-name">Petróleo</span>
+                </label>
+
+                <label class="color-swatch-item">
+                  <input type="radio" name="card-color" value="creme">
+                  <span class="color-swatch swatch-creme" title="Creme Suave"></span>
+                  <span class="color-name">Creme</span>
+                </label>
+
+                <label class="color-swatch-item">
+                  <input type="radio" name="card-color" value="rosa-suave">
+                  <span class="color-swatch swatch-rosa" title="Rosa Amor"></span>
+                  <span class="color-name">Rosa</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="form-submit-container">
+              <button type="submit" id="btn-submit" class="btn-publish">
+                <span class="btn-content">
+                  <i data-lucide="send" class="btn-icon"></i>
+                  <span>PUBLICAR MINHA DECLARAÇÃO DE FÉ</span>
+                </span>
+                <span class="btn-loader" style="display: none;">
+                  <span class="spinner"></span>
+                  <span>Publicando no mural...</span>
+                </span>
+              </button>
+            </div>
+          </form>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- MURAL SECTION -->
+    <section id="mural" class="mural-section">
+      <div class="container">
+
+        <div class="mural-header-container">
+          <div class="mural-title-badge">
+            <i data-lucide="layout-grid"></i> MURAL COLETIVO
+          </div>
+          <h2 class="mural-title">Declarações de Fé</h2>
+          <p class="mural-subtitle">
+            Leia as declarações de outras pessoas e seja encorajado pela fé delas.
+          </p>
+        </div>
+
+        <!-- MURAL GRID OF FLOATING CARDS -->
+        <div id="mural-grid" class="mural-cards-grid" aria-live="polite">
+          <!-- Dynamically populated via app.js -->
+          <div class="mural-loading-state">
+            <div class="spinner-large"></div>
+            <p>Carregando declarações de fé inspiradoras...</p>
+          </div>
+        </div>
+
+        <!-- Empty search state -->
+        <div id="mural-empty-state" class="mural-empty-state" style="display: none;">
+          <div class="empty-icon">🕊️</div>
+          <h3>Nenhuma declaração encontrada com esses termos</h3>
+          <p>Tente buscar por outras palavras ou seja o primeiro a publicar nesta categoria!</p>
+          <button class="btn-reset-filters" id="btn-reset-filters">Ver todas as declarações</button>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- SUCCESS MODAL / TOAST NOTIFICATION -->
+  <div id="success-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-card">
+      <button id="btn-modal-x" class="modal-close-x" aria-label="Fechar modal" title="Fechar">
+        <i data-lucide="x"></i>
+      </button>
+      <div class="modal-glow"></div>
+      <div class="modal-icon-circle">
+        <i data-lucide="check-circle-2"></i>
+      </div>
+      <h3 class="modal-title">Sua declaração de fé foi publicada!</h3>
+      <p class="modal-message">
+        Que sua declaração também fortaleça a fé de outras pessoas. ❤️
+      </p>
+
+      <div class="modal-preview-box" id="modal-card-preview">
+        <!-- Injected newly created card preview -->
+      </div>
+
+      <div class="modal-actions">
+        <button id="btn-modal-share" class="btn-secondary">
+          <i data-lucide="share-2"></i> Compartilhar no WhatsApp
+        </button>
+        <button id="btn-modal-close" class="btn-primary">
+          <i data-lucide="arrow-down"></i> Ver no Mural
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT MODAL -->
+  <div id="edit-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-card modal-edit-card">
+      <button id="btn-edit-modal-x" class="modal-close-x" aria-label="Fechar modal de edição" title="Fechar">
+        <i data-lucide="x"></i>
+      </button>
+
+      <div class="modal-icon-circle" style="background: #e0f2fe; color: #0284c7;">
+        <i data-lucide="edit-3"></i>
+      </div>
+      <h3 class="modal-title">Editar sua declaração</h3>
+      <p class="modal-message">
+        Altere o texto ou o nome da sua declaração de fé.
+      </p>
+
+      <form id="edit-faith-form" novalidate style="width: 100%; text-align: left; margin-top: 1rem;">
+        <input type="hidden" id="edit-item-id">
+        <div class="form-group">
+          <div class="label-row">
+            <label for="edit-declaration-input" class="form-label">
+              <i data-lucide="scroll"></i> Declaração de fé <span class="required">*</span>
+            </label>
+            <span id="edit-char-counter" class="char-counter">0 / 1.000</span>
+          </div>
+          <textarea id="edit-declaration-input" name="declaration" rows="4" maxlength="1000" required></textarea>
+          <div class="field-error" id="edit-declaration-error"></div>
+        </div>
+
+        <div class="form-group">
+          <div class="label-row">
+            <label for="edit-name-input" class="form-label">
+              <i data-lucide="user"></i> Seu nome <span class="required">*</span>
+            </label>
+          </div>
+          <div class="input-with-icon">
+            <i data-lucide="user-check" class="input-icon"></i>
+            <input type="text" id="edit-name-input" name="name" minlength="2" maxlength="100" required>
+          </div>
+          <div class="field-error" id="edit-name-error"></div>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 1.5rem;">
+          <button type="button" id="btn-edit-cancel" class="btn-secondary">
+            Cancelar
+          </button>
+          <button type="submit" id="btn-edit-submit" class="btn-primary">
+            <i data-lucide="save"></i> Salvar Alterações
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION FOR COPY & INTERACTIONS -->
+  <div id="toast-container" class="toast-container" aria-live="assertive"></div>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container footer-content">
+      <div class="footer-verse">
+        <span class="footer-cross">
+          <img src="50mais_logo.png" alt="Ministério 50+" class="footer-logo">
+        </span>
+        <p>“O justo viverá pela sua fé.” — <strong>Habacuque 2:4</strong></p>
+      </div>
+      <p class="footer-subtext">
+        Mural coletivo de declarações de fé • Criado para inspirar esperança, alegria e comunhão.
+      </p>
+      <div class="footer-copyright">
+        © <span id="current-year">2026</span> — Ministério 50+ PIBJI
+      </div>
+    </div>
+  </footer>
+</body>
+
+>>>>>>> d30e284 (Corrige exibição da imagem msgApp.png removendo tipografia invertida e remove duplicação do botão de compartilhar fé)
 </html>

@@ -1841,7 +1841,6 @@ textarea:focus-visible, select:focus-visible {
 .hero-title-img { margin: .2rem auto .45rem; width: min(760px, 100%); }
 .hero-title-image {
   max-width: 760px;
-  filter: brightness(0) invert(1);
   opacity: .98;
 }
 .hero-quote-highlight {
