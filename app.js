@@ -2,12 +2,7 @@
 // MINHA PROFISSÃO DE FÉ — CLIENT-SIDE JAVASCRIPT
 // =========================================================
 
-// GitHub Pages uses a read-only JSON seed and browser-local changes.
 const AUTHOR_TOKENS_KEY = 'minha_profissao_de_fe_author_tokens';
-const LOCAL_DECLARATIONS_KEY = 'minha_profissao_de_fe_pages_data';
-const JSON_DATA_VERSION_KEY = 'minha_profissao_de_fe_json_version';
-const JSON_DATA_VERSION = 'pages-json-2026-10-24-v1';
-const JSON_DATA_URL = new URL('./declarations.json', document.baseURI);
 
 function sanitizeText(value) {
   if (typeof value !== 'string') return '';
@@ -115,10 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const statDeclarations = document.getElementById('stat-declarations');
   const statAmens = document.getElementById('stat-amens');
-  const storageModeNote = document.getElementById('storage-mode-note');
-  const btnExportJson = document.getElementById('btn-export-json');
-  const btnImportJson = document.getElementById('btn-import-json');
-  const jsonFileInput = document.getElementById('json-file-input');
   const successModal = document.getElementById('success-modal');
   const btnModalClose = document.getElementById('btn-modal-close');
   const btnModalShare = document.getElementById('btn-modal-share');
@@ -208,24 +199,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 3500);
   }
 
-  // 3. LOAD & RENDER DECLARATIONS
-  async function loadDeclarations() {
-    try {
-      const items = await FaithStorage.query({ search: '', color: 'all', sort: 'recent' });
-      renderCards(items);
-      if (storageModeNote) storageModeNote.hidden = false;
-      await updateStatsDisplay();
-    } catch (error) {
-      muralGrid.innerHTML = '<p class="mural-loading-state">Não foi possível conectar ao mural. Tente novamente em instantes.</p>';
-      showToast(error.message || 'Não foi possível carregar as profissões de fé.', '⚠️');
-    }
-  }
-
-  async function updateStatsDisplay() {
-    const stats = await FaithStorage.getStats();
-    if (statDeclarations) statDeclarations.textContent = stats.total_declarations;
-    if (statAmens) statAmens.textContent = stats.total_amens;
-  }
 
   function getInitials(name) {
     if (!name) return 'FÉ';
@@ -348,7 +321,6 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       await FaithStorage.delete(id);
       showToast('Sua profissão de fé foi excluída.', '✅');
-      await loadDeclarations();
     } catch (error) {
       buttonEl.disabled = false;
       showToast(error.message || 'Não foi possível excluir a declaração.', '⚠️');
@@ -512,9 +484,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const randomRadio = document.querySelector('input[name="card-color"][value="random"]');
     if (randomRadio) randomRadio.checked = true;
 
-    // Reload and animate
-    loadDeclarations();
-
     // Trigger celebration
     triggerCelebration();
 
@@ -574,33 +543,6 @@ document.addEventListener('DOMContentLoaded', () => {
       btnModalClose.click();
     }
   });
-
-  btnExportJson.addEventListener('click', async () => {
-    try {
-      await FaithStorage.exportJSON();
-      showToast('Backup JSON baixado.', '✅');
-    } catch (error) {
-      showToast(error.message || 'Não foi possível exportar o JSON.', '⚠️');
-    }
-  });
-
-  btnImportJson.addEventListener('click', () => jsonFileInput.click());
-
-  jsonFileInput.addEventListener('change', async () => {
-    const [file] = jsonFileInput.files || [];
-    if (!file) return;
-    try {
-      await FaithStorage.importJSON(file);
-      await loadDeclarations();
-      showToast('Backup JSON importado neste navegador.', '✅');
-    } catch (error) {
-      showToast(error.message || 'Arquivo JSON inválido.', '⚠️');
-    } finally {
-      jsonFileInput.value = '';
-    }
-  });
-
-
 
   // 7. SCRIPTURE SPEECH SYNTHESIS & AMBIENT PEACE CHORDS
   btnReadVerse.addEventListener('click', () => {

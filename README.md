@@ -1,19 +1,14 @@
-# Minha Profissão de Fé no GitHub Pages
+# Minha Profissão de Fé
 
-Esta é uma aplicação estática. `declarations.json` contém o mural inicial publicado; não há servidor Node, SQLite ou Google Sheets nesta versão.
+Mural coletivo de profissões de fé integrado em tempo real com o **Firebase Cloud Firestore**.
 
 ## Publicação
 
-O workflow em `.github/workflows/deploy-pages.yml` publica `index.html`, `app.js`, `style.css`, `declarations.json` e os recursos visuais/áudio. Envie esses arquivos ao GitHub e habilite GitHub Pages usando GitHub Actions.
+O workflow em `.github/workflows/deploy-pages.yml` publica os arquivos estáticos (`index.html`, `app.js`, `style.css` e mídias) para o GitHub Pages.
 
-## Como os dados são guardados
+## Arquitetura de Dados
 
-GitHub Pages serve arquivos somente para leitura. Cada navegador carrega `declarations.json` na primeira visita e guarda as alterações em `localStorage` daquele navegador. Publicações, Améns e exclusões não são automaticamente compartilhados com outros visitantes nem gravados no arquivo do repositório.
+- **Banco de Dados**: Cloud Firestore (Google Firebase).
+- **Tempo Real**: Atualizações dinâmicas através de `onSnapshot` da coleção `declarations`.
+- **Interações**: Adição de profissões de fé, contagem de "Amém" e exclusão protegida por autor.
 
-Use **Exportar JSON** para baixar as alterações feitas naquele navegador e **Importar JSON** para carregar um backup neste navegador. Para atualizar o mural público, revise o JSON exportado e substitua `declarations.json` no repositório com uma alteração/commit. Após o workflow concluir, visitantes sem dados locais novos verão a versão publicada.
-
-O token de exclusão fica somente no navegador que publicou e não é incluído no JSON exportado. Por isso, uma declaração importada em outro navegador não ganha autorização de exclusão do autor original.
-
-## Dados migrados
-
-O `declarations.json` inicial preserva as sete profissões que estavam no SQLite quando a migração foi feita. A profissão de Habacuque permanece fixada no topo.

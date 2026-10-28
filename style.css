@@ -859,26 +859,7 @@ input[type="text"]#name-input:focus {
   margin: 0 auto 1.75rem auto;
 }
 
-.mural-storage-note {
-  max-width: 620px;
-  margin: -1rem auto 1.75rem;
-  color: #8a4b08;
-  font-size: 0.9rem;
-}
 
-.mural-data-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.65rem;
-  margin: -0.75rem 0 1.75rem;
-}
-
-.mural-data-actions .btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-}
 
 /* MURAL CONTROLS BAR */
 .mural-controls-bar {
