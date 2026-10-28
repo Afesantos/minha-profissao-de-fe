@@ -1,2 +1,5 @@
 .env
 _site/
+.idea/
+*.rar
+*.zip

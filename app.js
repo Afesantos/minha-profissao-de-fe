@@ -1,5 +1,5 @@
 // =========================================================
-// MINHA PROFISSÃO DE FÉ — CLIENT-SIDE JAVASCRIPT
+// MINHA DECLARAÇÃO DE FÉ — CLIENT-SIDE JAVASCRIPT
 // =========================================================
 
 const AUTHOR_TOKENS_KEY = 'minha_profissao_de_fe_author_tokens';
@@ -20,11 +20,38 @@ function generateId() {
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+let authorTokensCache = null;
+
 function getAuthorTokens() {
+  if (!authorTokensCache) {
+    try {
+      authorTokensCache = JSON.parse(localStorage.getItem(AUTHOR_TOKENS_KEY) || '{}');
+    } catch {
+      authorTokensCache = {};
+    }
+  }
+  return authorTokensCache;
+}
+
+function saveAuthorToken(id) {
+  const tokens = getAuthorTokens();
+  tokens[id] = true;
+  authorTokensCache = tokens;
   try {
-    return JSON.parse(localStorage.getItem(AUTHOR_TOKENS_KEY) || '{}');
-  } catch {
-    return {};
+    localStorage.setItem(AUTHOR_TOKENS_KEY, JSON.stringify(tokens));
+  } catch (e) {
+    console.warn('Erro ao salvar token de autor no localStorage:', e);
+  }
+}
+
+function removeAuthorToken(id) {
+  const tokens = getAuthorTokens();
+  delete tokens[id];
+  authorTokensCache = tokens;
+  try {
+    localStorage.setItem(AUTHOR_TOKENS_KEY, JSON.stringify(tokens));
+  } catch (e) {
+    console.warn('Erro ao remover token de autor do localStorage:', e);
   }
 }
 
@@ -45,7 +72,7 @@ const FaithStorage = {
     const { db, collection, query, orderBy, onSnapshot } = window.FirebaseDB;
     const q = query(collection(db, "declarations"), orderBy("created_at", "desc"));
 
-    // Tenta sincronizar a profissão de fé de Habacuque no Firestore se não existir
+    // Tenta sincronizar a declaração de fé de Habacuque no Firestore se não existir
     this.ensureHabakkuk();
 
     return onSnapshot(q, (snapshot) => {
@@ -54,7 +81,7 @@ const FaithStorage = {
         ...doc.data()
       }));
 
-      // Garante que a profissão de fé de Habacuque esteja sempre presente
+      // Garante que a declaração de fé de Habacuque esteja sempre presente
       const hasHabakkuk = items.some(item =>
         item.id === HABAKKUK_DOC_ID ||
         item.is_pinned === 1 ||
@@ -92,7 +119,7 @@ const FaithStorage = {
   },
 
   async add({ name, declaration, color_theme }) {
-    const { db, collection, addDoc } = window.FirebaseDB;
+    const { db, collection, doc, setDoc } = window.FirebaseDB;
     const themes = ['amarelo-suave', 'azul-claro', 'verde-suave', 'coral', 'lilas', 'azul-petroleo', 'creme', 'rosa-suave'];
     const selectedTheme = themes.includes(color_theme) ? color_theme : themes[Math.floor(Math.random() * themes.length)];
 
@@ -106,12 +133,17 @@ const FaithStorage = {
       created_at: new Date().toISOString()
     };
 
-    const docRef = await addDoc(collection(db, "declarations"), newItem);
-    const tokens = getAuthorTokens();
-    tokens[docRef.id] = true;
-    localStorage.setItem(AUTHOR_TOKENS_KEY, JSON.stringify(tokens));
+    // Pre-gera a referência com ID síncrono no cliente
+    const newDocRef = doc(collection(db, "declarations"));
+    const id = newDocRef.id;
 
-    return { id: docRef.id, ...newItem };
+    // Registra a autoria na memória e no localStorage IMEDIATAMENTE antes de gravar no Firestore
+    saveAuthorToken(id);
+
+    // Grava no Firestore
+    await setDoc(newDocRef, newItem);
+
+    return { id, ...newItem };
   },
 
   async addAmen(id) {
@@ -134,16 +166,29 @@ const FaithStorage = {
     }
   },
 
+  async update(id, { name, declaration }) {
+    if (id === HABAKKUK_DOC_ID) {
+      throw new Error('A declaração de fé de Habacuque permanece sempre fixa no mural e não pode ser editada.');
+    }
+    const tokens = getAuthorTokens();
+    if (!tokens[id]) throw new Error('Este navegador não possui autorização para editar esta declaração.');
+    const { db, doc, updateDoc } = window.FirebaseDB;
+    await updateDoc(doc(db, "declarations", id), {
+      name: sanitizeText(name),
+      declaration: sanitizeText(declaration),
+      updated_at: new Date().toISOString()
+    });
+  },
+
   async delete(id) {
     if (id === HABAKKUK_DOC_ID) {
-      throw new Error('A profissão de fé de Habacuque permanece sempre fixa no mural e não pode ser excluída.');
+      throw new Error('A declaração de fé de Habacuque permanece sempre fixa no mural e não pode ser excluída.');
     }
     const tokens = getAuthorTokens();
     if (!tokens[id]) throw new Error('Este navegador não possui autorização para excluir esta declaração.');
     const { db, doc, deleteDoc } = window.FirebaseDB;
     await deleteDoc(doc(db, "declarations", id));
-    delete tokens[id];
-    localStorage.setItem(AUTHOR_TOKENS_KEY, JSON.stringify(tokens));
+    removeAuthorToken(id);
   },
 
   async getStats(items = []) {
@@ -304,10 +349,10 @@ document.addEventListener('DOMContentLoaded', () => {
       ? item.id
       : Math.abs(String(item.id || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0));
     const randomDecor = isHabakkuk ? '📜' : DECOR_ICONS[iconIndex % DECOR_ICONS.length];
-    const themeLabel = isHabakkuk ? '🌟 PROFISSÃO DE FÉ DE HABACUQUE' : 'Ministério 50+ 2026';
+    const themeLabel = isHabakkuk ? '🌟 DECLARAÇÃO DE FÉ DE HABACUQUE' : 'Ministério 50+ 2026';
     const initials = isHabakkuk ? 'HB' : getInitials(item.name);
     const dateFormatted = isHabakkuk ? 'Cerca de 620 a.C.' : formatDate(item.created_at);
-    const canDelete = !isHabakkuk && Boolean(getAuthorTokens()[item.id]);
+    const canManage = !isHabakkuk && Boolean(getAuthorTokens()[item.id]);
 
     card.innerHTML = `
       <div class="card-header-row">
@@ -338,7 +383,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <button class="btn-card-share" data-id="${item.id}" title="Compartilhar no WhatsApp">
             <i data-lucide="share-2"></i>
           </button>
-          ${canDelete ? `<button class="btn-card-delete" data-id="${item.id}" title="Excluir minha profissão de fé" aria-label="Excluir minha profissão de fé"><i data-lucide="trash-2"></i></button>` : ''}
+          ${canManage ? `<button class="btn-card-edit" data-id="${item.id}" title="Editar minha declaração de fé" aria-label="Editar minha declaração de fé"><i data-lucide="edit-3"></i></button>` : ''}
+          ${canManage ? `<button class="btn-card-delete" data-id="${item.id}" title="Excluir minha declaração de fé" aria-label="Excluir minha declaração de fé"><i data-lucide="trash-2"></i></button>` : ''}
         </div>
       </div>
     `;
@@ -350,6 +396,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Share button action
     const btnShare = card.querySelector('.btn-card-share');
     btnShare.addEventListener('click', () => handleShare(item));
+
+    const btnEdit = card.querySelector('.btn-card-edit');
+    if (btnEdit) {
+      btnEdit.addEventListener('click', () => openEditModal(item));
+    }
 
     const btnDelete = card.querySelector('.btn-card-delete');
     if (btnDelete) {
@@ -383,11 +434,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 4. AMEN & SHARE
   async function handleDelete(id, buttonEl) {
-    if (!window.confirm('Deseja excluir permanentemente sua profissão de fé?')) return;
+    if (!window.confirm('Deseja excluir permanentemente sua declaração de fé?')) return;
     buttonEl.disabled = true;
     try {
       await FaithStorage.delete(id);
-      showToast('Sua profissão de fé foi excluída.', '✅');
+      showToast('Sua declaração de fé foi excluída.', '✅');
     } catch (error) {
       buttonEl.disabled = false;
       showToast(error.message || 'Não foi possível excluir a declaração.', '⚠️');
@@ -445,7 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.toBlob(async (blob) => {
           if (!blob) throw new Error('Falha ao gerar imagem');
 
-          const file = new File([blob], 'profissao-de-fe.png', { type: 'image/png' });
+          const file = new File([blob], 'declaracao-de-fe.png', { type: 'image/png' });
 
           // Web Share API com arquivo (funciona no celular — abre WhatsApp, etc.)
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -461,7 +512,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = 'profissao-de-fe.png';
+          a.download = 'declaracao-de-fe.png';
           a.click();
           URL.revokeObjectURL(url);
           showToast('Imagem salva! Agora envie pelo WhatsApp 📲', '✅');
@@ -487,7 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let valid = true;
 
     if (!declaration) {
-      showError('declaration', 'Por favor, escreva a sua profissão de fé antes de publicar.');
+      showError('declaration', 'Por favor, escreva a sua declaração de fé antes de publicar.');
       declarationInput.focus();
       valid = false;
     } else if (declaration.length < 5) {
@@ -598,6 +649,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  const btnModalX = document.getElementById('btn-modal-x');
+  if (btnModalX) {
+    btnModalX.addEventListener('click', () => {
+      successModal.classList.remove('active');
+      successModal.setAttribute('aria-hidden', 'true');
+    });
+  }
+
   btnModalShare.addEventListener('click', () => {
     if (currentNewDeclaration) {
       handleShare(currentNewDeclaration);
@@ -609,6 +668,127 @@ document.addEventListener('DOMContentLoaded', () => {
       btnModalClose.click();
     }
   });
+
+  // Edit Modal logic
+  const editModal = document.getElementById('edit-modal');
+  const editForm = document.getElementById('edit-faith-form');
+  const editItemId = document.getElementById('edit-item-id');
+  const editDeclarationInput = document.getElementById('edit-declaration-input');
+  const editNameInput = document.getElementById('edit-name-input');
+  const editCharCounter = document.getElementById('edit-char-counter');
+  const btnEditCancel = document.getElementById('btn-edit-cancel');
+  const btnEditModalX = document.getElementById('btn-edit-modal-x');
+  const btnEditSubmit = document.getElementById('btn-edit-submit');
+
+  function openEditModal(item) {
+    if (!editModal) return;
+    editItemId.value = item.id;
+    editDeclarationInput.value = item.declaration || '';
+    editNameInput.value = item.name || '';
+
+    const len = editDeclarationInput.value.length;
+    if (editCharCounter) {
+      editCharCounter.textContent = `${len.toLocaleString('pt-BR')} / 1.000`;
+    }
+    clearError('edit-declaration');
+    clearError('edit-name');
+
+    editModal.classList.add('active');
+    editModal.setAttribute('aria-hidden', 'false');
+
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  }
+
+  function closeEditModal() {
+    if (!editModal) return;
+    editModal.classList.remove('active');
+    editModal.setAttribute('aria-hidden', 'true');
+  }
+
+  if (btnEditCancel) btnEditCancel.addEventListener('click', closeEditModal);
+  if (btnEditModalX) btnEditModalX.addEventListener('click', closeEditModal);
+  if (editModal) {
+    editModal.addEventListener('click', (e) => {
+      if (e.target === editModal) closeEditModal();
+    });
+  }
+
+  if (editDeclarationInput) {
+    editDeclarationInput.addEventListener('input', () => {
+      const len = editDeclarationInput.value.length;
+      if (editCharCounter) {
+        editCharCounter.textContent = `${len.toLocaleString('pt-BR')} / 1.000`;
+        if (len >= 950) {
+          editCharCounter.style.color = '#dc2626';
+        } else if (len >= 800) {
+          editCharCounter.style.color = '#d97706';
+        } else {
+          editCharCounter.style.color = 'var(--color-text-subtle)';
+        }
+      }
+      clearError('edit-declaration');
+    });
+  }
+
+  if (editNameInput) {
+    editNameInput.addEventListener('input', () => {
+      clearError('edit-name');
+    });
+  }
+
+  if (editForm) {
+    editForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = editItemId.value;
+      const declaration = editDeclarationInput.value.trim();
+      const name = editNameInput.value.trim();
+
+      let valid = true;
+
+      if (!declaration) {
+        showError('edit-declaration', 'Por favor, escreva a sua declaração de fé.');
+        editDeclarationInput.focus();
+        valid = false;
+      } else if (declaration.length < 5) {
+        showError('edit-declaration', 'Sua declaração precisa ter pelo menos 5 caracteres.');
+        editDeclarationInput.focus();
+        valid = false;
+      } else if (declaration.length > 1000) {
+        showError('edit-declaration', 'A declaração não pode ultrapassar 1.000 caracteres.');
+        editDeclarationInput.focus();
+        valid = false;
+      }
+
+      if (!name) {
+        showError('edit-name', 'Por favor, informe seu nome.');
+        if (valid) editNameInput.focus();
+        valid = false;
+      } else if (name.length < 2) {
+        showError('edit-name', 'O nome deve ter pelo menos 2 caracteres.');
+        if (valid) editNameInput.focus();
+        valid = false;
+      } else if (name.length > 100) {
+        showError('edit-name', 'O nome deve ter no máximo 100 caracteres.');
+        if (valid) editNameInput.focus();
+        valid = false;
+      }
+
+      if (!valid) return;
+
+      btnEditSubmit.disabled = true;
+      try {
+        await FaithStorage.update(id, { name, declaration });
+        closeEditModal();
+        showToast('Sua declaração foi atualizada com sucesso! ✏️', '✅');
+      } catch (error) {
+        showToast(error.message || 'Não foi possível atualizar a declaração.', '⚠️');
+      } finally {
+        btnEditSubmit.disabled = false;
+      }
+    });
+  }
 
   // 7. SCRIPTURE SPEECH SYNTHESIS & AMBIENT PEACE CHORDS
   btnReadVerse.addEventListener('click', () => {

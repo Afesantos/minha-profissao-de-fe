@@ -1,5 +1,5 @@
 /* =========================================================
-   MINHA PROFISSÃO DE FÉ — ESTILOS CSS
+   MINHA DECLARAÇÃO DE FÉ — ESTILOS CSS
    Inspirado em Habacuque 3:17-18
    ========================================================= */
 
@@ -1291,6 +1291,27 @@ input[type="text"]#name-input:focus {
   transform: scale(1.1);
 }
 
+.btn-card-edit {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.btn-card-edit:hover {
+  color: #0284c7;
+  border-color: #bae6fd;
+  background: #f0f9ff;
+  transform: scale(1.1);
+}
+
 .btn-card-delete {
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.08);
@@ -1415,6 +1436,35 @@ input[type="text"]#name-input:focus {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.modal-close-x {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: #f8fafc;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  z-index: 10;
+}
+
+.modal-close-x:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  transform: scale(1.1);
+}
+
+.modal-edit-card {
+  max-width: 580px;
+  overflow-y: auto;
 }
 
 .modal-overlay.active .modal-card {
@@ -1705,6 +1755,34 @@ body {
 }
 ::selection { background: #d4b574; color: #102c46; }
 a, button, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+button,
+.btn-publish,
+.btn-primary,
+.btn-secondary,
+.btn-sound-toggle,
+.btn-icon-text,
+.btn-header-cta,
+.btn-reset-filters,
+.btn-amen,
+.btn-card-share,
+.btn-card-edit,
+.btn-card-delete,
+.modal-close-x,
+.hero-primary-link,
+.hero-secondary-link {
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+}
+
+.btn-publish .btn-content,
+.btn-publish .btn-loader {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+}
 a:focus-visible, button:focus-visible, input:focus-visible,
 textarea:focus-visible, select:focus-visible {
   outline: 3px solid rgba(185,146,74,.65);
@@ -1914,7 +1992,7 @@ textarea:focus, .input-with-icon input:focus {
 .card-body-text { font-size:1.12rem; line-height:1.78; color:#293e4b; }
 .card-footer-row { border-top-color:rgba(16,44,70,.1); }
 .card-author-name { color:#203c50; }
-.btn-amen, .btn-card-share, .btn-card-delete { transition:all .2s ease; }
+.btn-amen, .btn-card-share, .btn-card-edit, .btn-card-delete { transition:all .2s ease; }
 .mural-empty-state, .mural-loading-state {
   border:1px dashed #d7dfe2; border-radius:18px; background:rgba(255,255,255,.86);
 }

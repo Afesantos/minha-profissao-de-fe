@@ -1,4 +1,4 @@
-# Minha Profissão de Fé — versão com design modernizado
+# Minha Declaração de Fé — versão com design modernizado
 
 Esta versão atualiza a apresentação visual da página sem substituir a lógica de publicação existente.
 
