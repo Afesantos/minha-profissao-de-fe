@@ -1911,8 +1911,8 @@ textarea:focus-visible, select:focus-visible {
 }
 .hero-primary-link { background:#d4b574; color:#102c46; box-shadow:0 8px 22px rgba(4,18,30,.18); }
 .hero-primary-link:hover { background:#e4cb92; transform:translateY(-2px); }
-.hero-secondary-link { color:#f5f1e7; border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.07); }
-.hero-secondary-link:hover { background:rgba(255,255,255,.14); transform:translateY(-2px); }
+.hero-secondary-link { color:#102c46; border:1px solid #c7b58f; background:#ffffff; box-shadow:0 4px 14px rgba(16,44,70,.06); }
+.hero-secondary-link:hover { background:#f5f2eb; border-color:#b9924a; transform:translateY(-2px); }
 .hero-primary-link svg, .hero-secondary-link svg { width:18px; height:18px; }
 
 /* Form */
