@@ -298,6 +298,19 @@ body {
   letter-spacing: -0.02em;
 }
 
+.hero-title-img {
+  margin-bottom: 0.5rem;
+}
+
+.hero-title-image {
+  max-width: 520px;
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
 .hero-quote-highlight {
   font-family: var(--font-serif);
   font-size: 2.2rem;
