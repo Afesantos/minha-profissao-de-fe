@@ -359,6 +359,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function truncateName(name, maxLength = 15) {
+    if (!name) return '';
+    const trimmed = name.trim();
+    if (trimmed.length <= maxLength) return trimmed;
+    return trimmed.substring(0, maxLength).trim() + '…';
+  }
+
   function createCardElement(item, isNew = false) {
     const card = document.createElement('article');
     const theme = item.color_theme || 'amarelo-suave';
@@ -378,6 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const initials = isHabakkuk ? 'HB' : getInitials(item.name);
     const dateFormatted = isHabakkuk ? 'Cerca de 620 a.C.' : formatDate(item.created_at);
     const canManage = !isHabakkuk && isAuthorId(item.id);
+    const displayName = isHabakkuk ? item.name : truncateName(item.name, 15);
 
     card.innerHTML = `
       <div class="card-header-row">
@@ -395,7 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="card-author-info">
           <div class="card-avatar-initials ${isHabakkuk ? 'avatar-habacuque' : ''}">${initials}</div>
           <div class="card-author-meta">
-            <span class="card-author-name">${item.name}</span>
+            <span class="card-author-name" title="${item.name}">${displayName}</span>
             <span class="card-date">${dateFormatted}</span>
           </div>
         </div>
