@@ -69,8 +69,8 @@
 
   /* Transitions & Shadows */
   --transition-smooth: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  --shadow-floating: 0 12px 30px rgba(0, 0, 0, 0.08);
-  --shadow-floating-hover: 0 22px 45px rgba(0, 0, 0, 0.14);
+  --shadow-floating: 0 16px 42px rgba(16, 44, 70, 0.14), 0 4px 12px rgba(16, 44, 70, 0.06);
+  --shadow-floating-hover: 0 28px 60px rgba(16, 44, 70, 0.22), 0 8px 20px rgba(16, 44, 70, 0.1);
 }
 
 /* RESET & BASE */
@@ -1743,8 +1743,8 @@ input[type="text"]#name-input:focus {
   --glass-bg: rgba(255,255,255,.97);
   --glass-border: rgba(226,220,208,.9);
   --glass-shadow: 0 22px 55px rgba(13,36,54,.08);
-  --shadow-floating: 0 12px 30px rgba(16,44,70,.08);
-  --shadow-floating-hover: 0 20px 42px rgba(16,44,70,.14);
+  --shadow-floating: 0 16px 42px rgba(16,44,70,.14), 0 4px 12px rgba(16,44,70,.06);
+  --shadow-floating-hover: 0 28px 60px rgba(16,44,70,.22), 0 8px 20px rgba(16,44,70,.1);
   --transition-smooth: all .24s ease;
 }
 html { scroll-padding-top: 96px; }
@@ -1980,13 +1980,14 @@ textarea:focus, .input-with-icon input:focus {
   gap:1.25rem; perspective:none; margin-top:1.5rem;
 }
 .faith-card {
-  border-radius:18px; padding:1.5rem; min-height:245px;
-  box-shadow:0 8px 24px rgba(16,44,70,.055);
-  transition:transform .22s ease,box-shadow .22s ease;
-  will-change:auto;
+  border-radius: 20px; padding: 1.75rem; min-height: 250px;
+  box-shadow: 0 16px 42px rgba(16,44,70,.14), 0 4px 12px rgba(16,44,70,.06);
+  border: 1px solid rgba(215, 208, 195, 0.8);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow;
 }
-.faith-card:hover { transform:translateY(-4px) !important; box-shadow:0 16px 32px rgba(16,44,70,.11); }
-.faith-card.card-pinned-habacuque { border:1px solid #d7bd7e; box-shadow:0 12px 30px rgba(185,146,74,.12); }
+.faith-card:hover { transform: translateY(-6px) !important; box-shadow: 0 28px 60px rgba(16,44,70,.22), 0 8px 20px rgba(16,44,70,.1); }
+.faith-card.card-pinned-habacuque { border: 1px solid #d7bd7e; box-shadow: 0 20px 48px rgba(185,146,74,.24), 0 6px 16px rgba(185,146,74,.12); }
 .faith-card.card-pinned-habacuque::before { background:linear-gradient(90deg,#b9924a,#e4cf9c,#b9924a); }
 .card-body-text { font-size:1.12rem; line-height:1.78; color:#293e4b; }
 .card-footer-row { border-top-color:rgba(16,44,70,.1); }
