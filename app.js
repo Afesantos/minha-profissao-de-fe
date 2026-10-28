@@ -22,6 +22,7 @@ function generateId() {
 
 let authorTokensCache = null;
 const sessionAuthorIds = new Set();
+const AUTHOR_PREFIX = 'faith_author_token_';
 
 function getAuthorTokens() {
   if (!authorTokensCache) {
@@ -34,15 +35,23 @@ function getAuthorTokens() {
   return authorTokensCache;
 }
 
-function isAuthor(id) {
+function isAuthorId(id) {
   if (!id || id === HABAKKUK_DOC_ID) return false;
+  if (localStorage.getItem(AUTHOR_PREFIX + id) || sessionAuthorIds.has(id)) {
+    return true;
+  }
   const tokens = getAuthorTokens();
-  return Boolean(tokens[id] || sessionAuthorIds.has(id));
+  return Boolean(tokens[id]);
 }
 
 function saveAuthorToken(id) {
   if (!id) return;
   sessionAuthorIds.add(id);
+  try {
+    localStorage.setItem(AUTHOR_PREFIX + id, 'true');
+  } catch (e) {
+    console.warn('Erro ao salvar token de autor individual:', e);
+  }
   const tokens = getAuthorTokens();
   tokens[id] = true;
   authorTokensCache = tokens;
@@ -56,6 +65,9 @@ function saveAuthorToken(id) {
 function removeAuthorToken(id) {
   if (!id) return;
   sessionAuthorIds.delete(id);
+  try {
+    localStorage.removeItem(AUTHOR_PREFIX + id);
+  } catch (e) {}
   const tokens = getAuthorTokens();
   delete tokens[id];
   authorTokensCache = tokens;
@@ -181,7 +193,7 @@ const FaithStorage = {
     if (id === HABAKKUK_DOC_ID) {
       throw new Error('A declaração de fé de Habacuque permanece sempre fixa no mural e não pode ser editada.');
     }
-    if (!isAuthor(id)) {
+    if (!isAuthorId(id)) {
       throw new Error('Este navegador não possui autorização para editar esta declaração.');
     }
     const { db, doc, updateDoc } = window.FirebaseDB;
@@ -196,7 +208,7 @@ const FaithStorage = {
     if (id === HABAKKUK_DOC_ID) {
       throw new Error('A declaração de fé de Habacuque permanece sempre fixa no mural e não pode ser excluída.');
     }
-    if (!isAuthor(id)) {
+    if (!isAuthorId(id)) {
       throw new Error('Este navegador não possui autorização para excluir esta declaração.');
     }
     const { db, doc, deleteDoc } = window.FirebaseDB;
@@ -365,7 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeLabel = isHabakkuk ? '🌟 DECLARAÇÃO DE FÉ DE HABACUQUE' : 'Ministério 50+ 2026';
     const initials = isHabakkuk ? 'HB' : getInitials(item.name);
     const dateFormatted = isHabakkuk ? 'Cerca de 620 a.C.' : formatDate(item.created_at);
-    const canManage = !isHabakkuk && isAuthor(item.id);
+    const canManage = !isHabakkuk && isAuthorId(item.id);
 
     card.innerHTML = `
       <div class="card-header-row">
