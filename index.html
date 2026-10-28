@@ -76,13 +76,15 @@
         </div>
       </a>
 
-      <div class="header-actions">
+      <nav class="header-actions" aria-label="Navegação principal">
+        <a class="header-nav-link" href="#mural">Mural</a>
+        <a class="header-nav-cta" href="#formulario"><i data-lucide="pen-line"></i><span>Declarar minha fé</span></a>
         <button id="btn-ambient-sound" class="btn-sound-toggle" title="Tocar Oração de Habacuque"
           aria-label="Tocar Oração de Habacuque">
           <i data-lucide="volume-2"></i>
           <span class="sound-label">Oração de Habacuque</span>
         </button>
-      </div>
+      </nav>
     </div>
   </header>
 
@@ -102,7 +104,7 @@
         </div>
 
         <h2 class="hero-quote-highlight animate-fade-in delay-2">
-          “ Mas o meu justo viverá pela fé.” Heb 10:38a
+          “Mas o meu justo viverá pela fé.” <span>Hebreus 10:38</span>
         </h2>
 
         <!-- Biblical Context Card -->
@@ -138,6 +140,11 @@
           <div class="hero-question-box">
             <span class="question-pre">Agora é a sua vez:</span>
             <h3 class="question-main">Qual é a sua profissão de fé?</h3>
+          </div>
+
+          <div class="hero-actions">
+            <a href="#formulario" class="hero-primary-link"><i data-lucide="pen-line"></i> Compartilhe sua fé</a>
+            <a href="#mural" class="hero-secondary-link"><i data-lucide="messages-square"></i> Ler declarações</a>
           </div>
         </div>
 
@@ -197,7 +204,7 @@
                 <i data-lucide="palette"></i> Escolha a cor do seu cartão <span class="optional">(ou deixe
                   aleatório)</span>
               </label>
-              <div class="color-picker-grid" id="color-picker">
+              <div class="color-picker-grid" id="color-picker" role="radiogroup" aria-label="Escolha a cor do cartão">
                 <label class="color-swatch-item">
                   <input type="radio" name="card-color" value="random" checked>
                   <span class="color-swatch swatch-random" title="Cor Surpresa / Aleatória">
