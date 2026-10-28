@@ -1,0 +1,15 @@
+{
+  "name": "Minha Declaração de Fé",
+  "short_name": "Declaração de Fé",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#102c46",
+  "theme_color": "#102c46",
+  "icons": [
+    {
+      "src": "50mais_logo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png"
+    }
+  ]
+}
