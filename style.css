@@ -1756,6 +1756,9 @@ body {
 ::selection { background: #d4b574; color: #102c46; }
 a, button, input, textarea, select { -webkit-tap-highlight-color: transparent; }
 button,
+input[type="submit"],
+input[type="button"],
+.btn,
 .btn-publish,
 .btn-primary,
 .btn-secondary,
@@ -1770,18 +1773,19 @@ button,
 .modal-close-x,
 .hero-primary-link,
 .hero-secondary-link {
-  text-align: center;
-  justify-content: center;
-  align-items: center;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
 }
 
 .btn-publish .btn-content,
 .btn-publish .btn-loader {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  width: 100%;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
 }
 a:focus-visible, button:focus-visible, input:focus-visible,
 textarea:focus-visible, select:focus-visible {
